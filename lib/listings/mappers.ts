@@ -3,6 +3,26 @@ import type { Listing } from '@/types';
 
 type ItemRow = Database['public']['Tables']['items']['Row'];
 
+/** Only the columns ITEM_COLUMNS selects. toListing() must not demand the rest of the row (moderation fields etc.). */
+type ListingQueryRow = Pick<
+  ItemRow,
+  | 'id'
+  | 'seller_id'
+  | 'seller_name'
+  | 'title'
+  | 'description'
+  | 'category'
+  | 'listing_type'
+  | 'price'
+  | 'condition_label'
+  | 'image_url'
+  | 'campus_location'
+  | 'status'
+  | 'created_at'
+  | 'rent_unit'
+  | 'rent_max_units'
+>;
+
 export const ITEM_COLUMNS =
   'id, seller_id, seller_name, title, description, category, listing_type, price, condition_label, image_url, campus_location, status, created_at, rent_unit, rent_max_units';
 
@@ -13,7 +33,7 @@ export function resolveImageUrl(url: string | null): string | null {
   return '/uploads/' + url.replace(/^\/?(\.\.\/)?(uploads\/)?/, '');
 }
 
-export function toListing(r: ItemRow): Listing {
+export function toListing(r: ListingQueryRow): Listing {
   return {
     id: r.id,
     sellerId: r.seller_id,
