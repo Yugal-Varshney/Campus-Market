@@ -8,6 +8,7 @@ import { countConversations, getListing, getWishlistIds } from '@/lib/listings/q
 import { categoryLabel, conditionLabel } from '@/lib/constants';
 import { formatPrice, rentTerms, statusInfo, timeAgo } from '@/lib/format';
 import { getShareForItem } from '@/lib/contact/queries';
+import { getCategoryNames } from '@/lib/categories';
 import SellerPanel from '@/components/product/SellerPanel';
 import ReportButton from '@/components/report/ReportButton';
 
@@ -29,12 +30,13 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
   const hasConversations = isOwner ? (await countConversations(item.id)) > 0 : false;
   const share = user && !isOwner && item.sellerId ? await getShareForItem(item.id, user.id) : null;
   const terms = rentTerms(item);
+  const names = await getCategoryNames();
 
   return (
     <div className="detail-shell">
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link href="/marketplace">Marketplace</Link><span className="sep">/</span>
-        <Link href={`/marketplace?category=${item.category}`}>{categoryLabel(item.category)}</Link>
+        <Link href={`/marketplace?category=${item.category}`}>{categoryLabel(item.category, names)}</Link>
       </nav>
       <div className="detail-grid">
         <div className="detail-media">
@@ -44,7 +46,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
           <span className={`item-type-badge ${st.cls}`}>{st.label}</span>
         </div>
         <div className="detail-info">
-          <p className="detail-meta">{categoryLabel(item.category)} · {item.listingType === 'rent' ? 'For rent' : 'For sale'}</p>
+          <p className="detail-meta">{categoryLabel(item.category, names)} · {item.listingType === 'rent' ? 'For rent' : 'For sale'}</p>
           <h1 className="font-display detail-title">{item.title}</h1>
           <div className="detail-price-row">
             <span className="detail-price">{formatPrice(item.price)}</span>

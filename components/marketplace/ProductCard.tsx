@@ -5,7 +5,7 @@ import { formatPrice, rentTerms, statusInfo } from '@/lib/format';
 import type { Product } from '@/types';
 import WishlistButton from './WishlistButton';
 
-export default function ProductCard({ item, wishlisted, index = 0 }: { item: Product; wishlisted: boolean; index?: number }) {
+export default function ProductCard({ item, wishlisted, index = 0, categoryNames }: { item: Product; wishlisted: boolean; index?: number; categoryNames?: Record<string, string> }) {
   const st = statusInfo(item);
   const terms = rentTerms(item);
   return (
@@ -25,7 +25,7 @@ export default function ProductCard({ item, wishlisted, index = 0 }: { item: Pro
       </div>
       <div className="item-info">
         <div className="item-info-main">
-          <p className="item-category-label">{categoryLabel(item.category)}</p>
+          <p className="item-category-label">{categoryLabel(item.category, categoryNames)}</p>
           <h3><Link href={`/marketplace/${item.id}`} className="item-title-link">{item.title}</Link></h3>
           <p className="item-seller-line">Listed by: <span>{item.sellerName}</span></p>
         </div>

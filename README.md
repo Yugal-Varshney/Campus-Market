@@ -1,4 +1,4 @@
-# IIPS Market — V2
+# Campus Market
 
 A student-only campus marketplace: buy, sell and rent books, notes, electronics and stationery inside your college. V2 migrates the original V1 (HTML/CSS/vanilla JS + Supabase) to a professional full-stack architecture **without changing the database, visual identity or features**.
 
@@ -53,7 +53,7 @@ Every database table keeps its V1 name: `profiles, items, item_private, wishlist
 | `SUPABASE_SERVICE_ROLE_KEY` | not used; never prefix with `NEXT_PUBLIC_` |
 
 ### Commands
-`npm run dev` · `npm run build` · `npm start` · `npm run typecheck` · `npm test` (unit tests) · `npm run test:db` (local Postgres tests of the SQL, needs Python — see `supabase/tests/local/README.md`). `npm run lint` is declared but ESLint is not installed in this project yet. Production Supabase setup (SMTP, email templates, redirect URLs, confirmation): `docs/PHASE3_SUPABASE_RUNBOOK.md`. Contact consent, rental terms and report buttons (migrations 010–011, deploy order): `docs/PHASE4_RUNBOOK.md`. Moderator and admin screens (`/moderator`, `/admin`; app-only release): `docs/PHASE5_RUNBOOK.md`.
+`npm run dev` · `npm run build` · `npm start` · `npm run typecheck` · `npm test` (unit tests) · `npm run test:db` (local Postgres tests of the SQL, needs Python — see `supabase/tests/local/README.md`). `npm run lint` is declared but ESLint is not installed in this project yet. Production Supabase setup (SMTP, email templates, redirect URLs, confirmation): `docs/PHASE3_SUPABASE_RUNBOOK.md`. Contact consent, rental terms and report buttons (migrations 010–011, deploy order): `docs/PHASE4_RUNBOOK.md`. Moderator and admin screens (`/moderator`, `/admin`; app-only release): `docs/PHASE5_RUNBOOK.md`. Usability, accessibility and database-driven categories (`/admin/categories`; app-only release): `docs/PHASE6_RUNBOOK.md`.
 
 ## Deployment (Vercel)
 Import the repo, set the env vars above (Production + Preview), deploy. `next.config.ts` allows images from your Supabase Storage host automatically. Uploads are capped at 4 MB (Vercel's request limit); the browser resizes photos first.

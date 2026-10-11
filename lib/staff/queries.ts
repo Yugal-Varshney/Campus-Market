@@ -104,3 +104,18 @@ export async function getSecurityEvents(page: number): Promise<{ rows: SecurityE
   if (error) throw new Error('Could not load security events.');
   return { rows: (data ?? []) as unknown as SecurityEventRow[], total: count ?? 0 };
 }
+
+export type CategoryRow = Database['public']['Tables']['categories']['Row'] & { listings: number };
+
+/** Every category (including disabled ones) with the number of listings that use it. Admin screen only. */
+export async function getAllCategories(): Promise<CategoryRow[]> {
+  const supabase = await createClient();
+  const [cats, items] = await Promise.all([
+    supabase.from('categories').select('id, name, slug, description, is_active, sort_order, created_at, updated_at').order('sort_order', { ascending: true }).order('name', { ascending: true }),
+    supabase.from('items').select('category'),
+  ]);
+  if (cats.error) throw new Error('Could not load categories.');
+  const counts = new Map<string, number>();
+  for (const i of items.data ?? []) counts.set(i.category, (counts.get(i.category) ?? 0) + 1);
+  return (cats.data ?? []).map((c) => ({ ...(c as Database['public']['Tables']['categories']['Row']), listings: counts.get(c.slug) ?? 0 }));
+}

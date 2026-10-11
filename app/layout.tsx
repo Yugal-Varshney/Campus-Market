@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Campus Market — IIPS Market', template: '%s · Campus Market' },
+  title: { default: 'Campus Market', template: '%s · Campus Market' },
   description: 'Buy, sell and rent books, notes, electronics and stationery on campus. Students only.',
   openGraph: { type: 'website', title: 'Campus Market', description: 'The student-only campus marketplace.' },
 };

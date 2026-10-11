@@ -37,3 +37,24 @@ export const ROLES = ['student', 'moderator', 'admin'] as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.test(v);
 export const isId = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0;
+
+/** Category rules from migration 008: name 2-40 characters, slug a-z / 0-9 / "-" (2-40), description up to 200. */
+export function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+}
+
+export function validateCategory(input: { name: unknown; slug?: unknown; description?: unknown }, requireSlug: boolean):
+  { value: { name: string; slug: string; description: string } } | { error: string } {
+  const name = typeof input.name === 'string' ? input.name.trim() : '';
+  if (name.length < 2 || name.length > 40) return { error: 'Category name must be 2 to 40 characters.' };
+  const slug = typeof input.slug === 'string' ? input.slug.trim().toLowerCase() : '';
+  if (requireSlug && !/^[a-z0-9-]{2,40}$/.test(slug)) return { error: 'The short name (slug) must be 2 to 40 characters: letters, numbers and dashes.' };
+  const description = typeof input.description === 'string' ? input.description.trim() : '';
+  if (description.length > 200) return { error: 'Description is limited to 200 characters.' };
+  return { value: { name, slug, description } };
+}

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getWishlist } from '@/lib/listings/queries';
+import { getCategoryNames } from '@/lib/categories';
 import ProductGrid from '@/components/marketplace/ProductGrid';
 import type { WishlistItem } from '@/types';
 
@@ -11,6 +12,7 @@ export default async function WishlistPage() {
   const user = await getCurrentUser();
   if (!user) return <div className="empty-state solid" role="alert"><h2 className="font-display">Sign in</h2><p>You need to sign in to continue.</p></div>;
 
+  const categoryNames = await getCategoryNames();
   let items: WishlistItem[] | null = null;
   try { items = await getWishlist(user.id); } catch { items = null; }
 
@@ -31,7 +33,7 @@ export default async function WishlistPage() {
           <Link href="/marketplace" className="btn btn-dark">Browse the Board</Link>
         </div>
       ) : (
-        <ProductGrid items={items.map((w) => w.listing)} wishlistIds={items.map((w) => w.itemId)} cols={4} />
+        <ProductGrid items={items.map((w) => w.listing)} wishlistIds={items.map((w) => w.itemId)} cols={4} categoryNames={categoryNames} />
       )}
     </div>
   );

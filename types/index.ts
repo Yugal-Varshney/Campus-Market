@@ -4,6 +4,8 @@ export type Category = Database['public']['Tables']['items']['Row']['category'];
 export type ListingType = Database['public']['Tables']['items']['Row']['listing_type'];
 export type ListingStatus = Database['public']['Tables']['items']['Row']['status'];
 export type Condition = 'new' | 'like-new' | 'good' | 'fair';
+/** One entry of a category dropdown or filter list. */
+export interface CategoryOption { value: string; label: string }
 export type RentUnit = 'day' | 'week' | 'month';
 export type ContactShareStatus = Database['public']['Tables']['contact_shares']['Row']['status'];
 export type ReportReason = Database['public']['Tables']['reports']['Row']['reason'];
@@ -55,6 +57,10 @@ export interface Conversation {
   createdAt: string;
   itemTitle: string;
   itemSellerName: string;
+  /** Latest message in the chat (null until someone writes). The list is ordered by this. */
+  lastMessage?: string | null;
+  lastMessageAt?: string | null;
+  lastSenderId?: string | null;
 }
 
 export interface Message {

@@ -6,7 +6,8 @@ import { resolveImageUrl } from '../lib/listings/mappers';
 import { friendlyDbError, knownDbError } from '../lib/errors';
 import { statusInfo, rentTerms } from '../lib/format';
 import { validateReport } from '../lib/validation/report';
-import { cleanReason, suspensionUntil, isUuid, isId } from '../lib/validation/staff';
+import { cleanReason, suspensionUntil, isUuid, isId, slugify, validateCategory } from '../lib/validation/staff';
+import { categoryLabel } from '../lib/constants';
 import { buildAccountNotice } from '../lib/account/notice';
 
 const ok = { title: 'Chem book', description: '', category: 'books', listingType: 'sell', price: 250, condition: 'good', phone: '+91 98765 43210' };
@@ -140,6 +141,31 @@ t('expired suspension shows nothing', buildAccountNotice({ ...clean, account_sta
 t('open-ended suspension says until further notice', /further notice/.test(buildAccountNotice({ ...clean, account_status: 'suspended' }, t0)?.text ?? ''));
 t('recent warning shown', buildAccountNotice({ ...clean, last_warning_at: '2026-10-10T10:00:00Z', last_warning_reason: 'be polite' }, t0)?.kind === 'warned');
 t('old warning hidden after 14 days', buildAccountNotice({ ...clean, last_warning_at: '2026-09-20T10:00:00Z', last_warning_reason: 'be polite' }, t0) === null);
+
+// ---- database-driven categories (Phase 6) ----
+t('admin-created category accepted by listing validation', !!validateListing({ ...ok, category: 'lab-equipment' }, ['books', 'lab-equipment']).value);
+t('category missing from the live list rejected', !!validateListing({ ...ok, category: 'books' }, ['notes']).error);
+t('built-in list still used when no live list is given', !!validateListing({ ...ok, category: 'books' }).value);
+t('unknown category rejected without a live list', !!validateListing({ ...ok, category: 'lab-equipment' }).error);
+const qc = parseListingQuery({ category: 'books,lab-equipment,hax' }, ['books', 'lab-equipment']);
+t('URL filter keeps live categories and drops unknown ones', qc.categories.join() === 'books,lab-equipment');
+t('URL filter without a live list uses the built-in categories', parseListingQuery({ category: 'lab-equipment' }).categories.length === 0);
+t('available=all includes sold and rented', parseListingQuery({ available: 'all' }).availableOnly === false);
+t('available defaults to active listings only', parseListingQuery({}).availableOnly === true);
+t('category label prefers the database name', categoryLabel('lab-equipment', { 'lab-equipment': 'Lab Equipment' }) === 'Lab Equipment');
+t('category label falls back to the built-in name', categoryLabel('books') === 'Books');
+t('category label falls back to the slug', categoryLabel('mystery') === 'mystery');
+
+// ---- admin category form rules (migration 008) ----
+t('slugify makes a clean slug', slugify('Lab Equipment & Tools!') === 'lab-equipment-tools');
+t('slugify trims dashes', slugify('  --Books--  ') === 'books');
+t('slugify caps at 40 characters', slugify('a'.repeat(60)).length === 40);
+t('category with name and slug accepted', 'value' in validateCategory({ name: 'Lab Equipment', slug: 'lab-equipment', description: '' }, true));
+t('category name of 1 character rejected', 'error' in validateCategory({ name: 'A', slug: 'ab', description: '' }, true));
+t('category slug capitals are lower-cased like the database does', (() => { const r = validateCategory({ name: 'Lab', slug: 'Lab', description: '' }, true); return 'value' in r && r.value.slug === 'lab'; })());
+t('category slug with spaces rejected', 'error' in validateCategory({ name: 'Lab', slug: 'lab equipment', description: '' }, true));
+t('category description over 200 characters rejected', 'error' in validateCategory({ name: 'Lab', slug: 'lab', description: 'x'.repeat(201) }, true));
+t('slug not required when editing', 'value' in validateCategory({ name: 'Lab Gear', description: '' }, false));
 
 if (failed) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
 console.log('\nAll tests passed');

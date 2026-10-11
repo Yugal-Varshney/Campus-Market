@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getListings, getWishlistIds } from '@/lib/listings/queries';
 import { parseListingQuery } from '@/lib/listings/search-params';
+import { getCategories, getCategoryNames } from '@/lib/categories';
 import type { Listing, Paginated } from '@/types';
 import Filters from '@/components/marketplace/Filters';
 import SortSelect from '@/components/marketplace/SortSelect';
@@ -16,7 +17,8 @@ type SP = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function MarketplacePage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  const query = parseListingQuery(sp);
+  const [categories, categoryNames] = await Promise.all([getCategories(), getCategoryNames()]);
+  const query = parseListingQuery(sp, categories.map((c) => c.value));
   const user = await getCurrentUser();
 
   let result: Paginated<Listing> | null = null;
@@ -27,11 +29,11 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
   }
   const wishlistIds = user ? await getWishlistIds(user.id) : [];
   const flat = (k: string) => (Array.isArray(sp[k]) ? (sp[k] as string[])[0] : (sp[k] as string | undefined));
-  const keep = { q: flat('q'), category: flat('category'), minPrice: flat('minPrice'), maxPrice: flat('maxPrice'), sort: flat('sort') };
+  const keep = { q: flat('q'), category: flat('category'), minPrice: flat('minPrice'), maxPrice: flat('maxPrice'), sort: flat('sort'), available: flat('available') };
 
   return (
     <div className="browse-grid">
-      <Suspense fallback={<aside className="browse-sidebar" />}><Filters /></Suspense>
+      <Suspense fallback={<aside className="browse-sidebar" />}><Filters categories={categories} /></Suspense>
       <section className="browse-main">
         {/* The navbar search box is hidden below 768px, so phones get their own. Filters are carried over. */}
         <form className="mobile-search" action="/marketplace" role="search">
@@ -39,6 +41,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
           {keep.minPrice && <input type="hidden" name="minPrice" value={keep.minPrice} />}
           {keep.maxPrice && <input type="hidden" name="maxPrice" value={keep.maxPrice} />}
           {keep.sort && <input type="hidden" name="sort" value={keep.sort} />}
+          {keep.available && <input type="hidden" name="available" value={keep.available} />}
           <input type="search" name="q" className="search-input" defaultValue={keep.q ?? ''} placeholder="Search books, notes, electronics..." aria-label="Search listings" maxLength={100} />
           <button type="submit" className="btn btn-dark btn-sm">SEARCH</button>
         </form>
@@ -63,7 +66,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
           </div>
         ) : (
           <>
-            <ProductGrid items={result.items} wishlistIds={wishlistIds} />
+            <ProductGrid items={result.items} wishlistIds={wishlistIds} categoryNames={categoryNames} />
             <Pagination page={result.page} total={result.total} pageSize={result.pageSize} params={keep} />
           </>
         )}

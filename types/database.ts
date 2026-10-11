@@ -9,7 +9,7 @@
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-type Category = 'books' | 'notes' | 'electronics' | 'stationary';
+type Category = string; // a categories.slug (migration 008 made categories a table; admins can add more)
 type ListingType = 'sell' | 'rent';
 type ListingStatus = 'active' | 'sold' | 'rented' | 'inactive';
 type ModerationStatus = 'approved' | 'pending' | 'hidden' | 'rejected';
@@ -175,6 +175,10 @@ export type Database = {
         };
         Insert: never; Update: never; Relationships: [];
       };
+      categories: {
+        Row: { id: number; name: string; slug: string; description: string; is_active: boolean; sort_order: number; created_at: string; updated_at: string };
+        Insert: never; Update: never; Relationships: [];
+      };
       audit_logs: {
         Row: {
           id: number; created_at: string; actor_id: string | null; actor_role: string; actor_name: string | null;
@@ -198,6 +202,9 @@ export type Database = {
         Returns: { name: string; email: string; phone: string }[];
       };
       acting_role: { Args: Record<PropertyKey, never>; Returns: string };
+      admin_create_category: { Args: { p_name: string; p_slug: string; p_description?: string }; Returns: number };
+      admin_update_category: { Args: { p_id: number; p_name: string; p_description: string; p_sort_order: number }; Returns: number };
+      admin_set_category_active: { Args: { p_id: number; p_active: boolean; p_reason: string }; Returns: number };
       staff_claim_report: { Args: { p_report_id: number }; Returns: number };
       staff_resolve_report: { Args: { p_report_id: number; p_reason: string }; Returns: number };
       staff_dismiss_report: { Args: { p_report_id: number; p_reason: string }; Returns: number };

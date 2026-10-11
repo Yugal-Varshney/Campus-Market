@@ -4,6 +4,7 @@ import ListingForm from '@/components/forms/ListingForm';
 import { getCurrentUser } from '@/lib/auth/session';
 import { updateListing } from '@/lib/listings/actions';
 import { getListing } from '@/lib/listings/queries';
+import { getCategories, getCategoryNames } from '@/lib/categories';
 import { createClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = { title: 'Edit listing' };
@@ -13,6 +14,11 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
   const id = /^\d+$/.test(raw) ? Number(raw) : -1;
   const [user, item] = await Promise.all([getCurrentUser(), getListing(id)]);
   if (!user || !item || item.sellerId !== user.id) notFound(); // RLS enforces ownership on save too
+  const [activeCategories, names] = await Promise.all([getCategories(), getCategoryNames()]);
+  // Keep the listing's own category selectable even if an admin has disabled it since.
+  const categories = activeCategories.some((c) => c.value === item.category)
+    ? activeCategories
+    : [...activeCategories, { value: item.category, label: names[item.category] ?? item.category }];
   const supabase = await createClient();
   const { data: priv } = await supabase.from('item_private').select('contact_phone').eq('item_id', id).maybeSingle();
 
@@ -22,6 +28,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
       <ListingForm
         action={updateListing.bind(null, id)}
         submitLabel="SAVE CHANGES"
+        categories={categories}
         initial={{ title: item.title, description: item.description, category: item.category, listingType: item.listingType,
           price: item.price, condition: item.condition, phone: priv?.contact_phone ?? '', imageUrl: item.imageUrl,
           rentUnit: item.rentUnit, rentMaxUnits: item.rentMaxUnits }}

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getActingRole } from '@/lib/staff/auth';
-import { cleanReason, isId, isUuid, ROLES, suspensionUntil } from '@/lib/validation/staff';
+import { cleanReason, isId, isUuid, ROLES, suspensionUntil, validateCategory } from '@/lib/validation/staff';
 
 /**
  * Every action here is a thin wrapper around a database function from migrations 006-008. Those functions are the real
@@ -27,6 +27,7 @@ function finish(error: { message: string } | null, ok: string): Result {
   revalidatePath('/moderator', 'layout');
   revalidatePath('/admin', 'layout');
   revalidatePath('/marketplace', 'layout');
+  revalidatePath('/sell', 'layout');
   return { success: ok };
 }
 
@@ -123,4 +124,32 @@ export async function setUserRole(userId: string, newRole: string, reason: strin
   const supabase = await createClient();
   const { error } = await supabase.rpc('admin_set_role', { p_user_id: userId, p_new_role: newRole, p_reason: r.value });
   return finish(error, `Role changed to ${newRole}.`);
+}
+
+// ---- categories (migration 008; admin only) ----
+
+export async function createCategory(name: string, slug: string, description: string): Promise<Result> {
+  const g = await gate(true); if ('error' in g) return g;
+  const v = validateCategory({ name, slug, description }, true); if ('error' in v) return v;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('admin_create_category', { p_name: v.value.name, p_slug: v.value.slug, p_description: v.value.description });
+  return finish(error, 'Category added. Students can use it right away.');
+}
+
+export async function updateCategory(id: number, name: string, description: string, sortOrder: number): Promise<Result> {
+  const g = await gate(true); if ('error' in g) return g;
+  if (!isId(id) || !Number.isInteger(sortOrder) || sortOrder < 0 || sortOrder > 10000) return { error: 'Category not found.' };
+  const v = validateCategory({ name, description }, false); if ('error' in v) return v;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('admin_update_category', { p_id: id, p_name: v.value.name, p_description: v.value.description, p_sort_order: sortOrder });
+  return finish(error, 'Category saved.');
+}
+
+export async function setCategoryActive(id: number, active: boolean, reason: string): Promise<Result> {
+  const g = await gate(true); if ('error' in g) return g;
+  if (!isId(id) || typeof active !== 'boolean') return { error: 'Category not found.' };
+  const r = cleanReason(reason); if ('error' in r) return r;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('admin_set_category_active', { p_id: id, p_active: active, p_reason: r.value });
+  return finish(error, active ? 'Category enabled.' : 'Category disabled. Existing listings keep it; new listings cannot use it.');
 }

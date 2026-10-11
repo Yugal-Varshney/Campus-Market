@@ -1,12 +1,12 @@
 import type { Product } from '@/types';
 import ProductCard from './ProductCard';
 
-export default function ProductGrid({ items, wishlistIds, cols = 3 }: { items: Product[]; wishlistIds: number[]; cols?: 3 | 4 }) {
+export default function ProductGrid({ items, wishlistIds, cols = 3, categoryNames }: { items: Product[]; wishlistIds: number[]; cols?: 3 | 4; categoryNames?: Record<string, string> }) {
   const saved = new Set(wishlistIds);
   return (
     <div className={`item-grid cols-${cols}`}>
       {items.map((item, i) => (
-        <ProductCard key={item.id} item={item} wishlisted={saved.has(item.id)} index={i} />
+        <ProductCard key={item.id} item={item} wishlisted={saved.has(item.id)} index={i} categoryNames={categoryNames} />
       ))}
     </div>
   );

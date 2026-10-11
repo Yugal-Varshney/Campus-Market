@@ -7,13 +7,14 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { moderateListing } from '@/lib/moderation';
 import { friendlyDbError } from '@/lib/errors';
 import { validateListing } from '@/lib/validation/listing';
+import { getCategories } from '@/lib/categories';
 import { removeImage, storagePathFromUrl, uploadListingImage } from './storage';
 import { getSellerContact } from './queries';
 import type { ActionState, ListingStatus, SellerContact } from '@/types';
 
 const str = (fd: FormData, k: string) => (typeof fd.get(k) === 'string' ? (fd.get(k) as string) : '');
 
-function readListing(fd: FormData) {
+function readListing(fd: FormData, categories: string[]) {
   return validateListing({
     title: str(fd, 'title'),
     description: str(fd, 'description'),
@@ -24,7 +25,7 @@ function readListing(fd: FormData) {
     phone: str(fd, 'phone'),
     rentUnit: str(fd, 'rentUnit'),
     rentMaxUnits: str(fd, 'rentMaxUnits'),
-  });
+  }, categories);
 }
 const photo = (fd: FormData): File | null => {
   const f = fd.get('photo');
@@ -35,7 +36,8 @@ export async function createListing(_: ActionState, fd: FormData): Promise<Actio
   const user = await getCurrentUser();
   if (!user) return { error: 'You need to sign in to continue.' };
 
-  const { value, error } = readListing(fd);
+  const categories = await getCategories();
+  const { value, error } = readListing(fd, categories.map((c) => c.value));
   if (!value) return { error };
   const file = photo(fd);
   if (!file) return { error: 'Add a photo — real photos get far more replies.' };
@@ -85,13 +87,14 @@ export async function createListing(_: ActionState, fd: FormData): Promise<Actio
 export async function updateListing(id: number, _: ActionState, fd: FormData): Promise<ActionState> {
   const user = await getCurrentUser();
   if (!user) return { error: 'You need to sign in to continue.' };
-  const { value, error } = readListing(fd);
-  if (!value) return { error };
-
   const supabase = await createClient();
-  const { data: current } = await supabase.from('items').select('image_url, status, seller_id').eq('id', id).maybeSingle();
+  const { data: current } = await supabase.from('items').select('image_url, status, seller_id, category').eq('id', id).maybeSingle();
   if (!current || current.seller_id !== user.id) return { error: 'Listing not found.' };
   if (current.status !== 'active') return { error: 'Mark the item available again before editing it.' };
+  // The listing's own category stays valid even if an admin has since disabled it.
+  const categories = await getCategories();
+  const { value, error } = readListing(fd, [...categories.map((c) => c.value), current.category]);
+  if (!value) return { error };
 
   let imageUrl: string | undefined;
   let newPath: string | undefined;

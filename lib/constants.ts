@@ -46,5 +46,6 @@ export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as 
 export const IMAGE_BUCKET = 'item-images';
 export const MIN_PASSWORD_LENGTH = 8;
 
-export const categoryLabel = (v: string) => CATEGORIES.find((c) => c.value === v)?.label ?? v;
+/** Display name for a category slug: the database name when known, else the built-in list, else the slug itself. */
+export const categoryLabel = (v: string, names?: Record<string, string>) => names?.[v] ?? CATEGORIES.find((c) => c.value === v)?.label ?? v;
 export const conditionLabel = (v: string) => CONDITIONS.find((c) => c.value === v)?.label ?? v;

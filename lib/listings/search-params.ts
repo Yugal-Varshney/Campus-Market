@@ -4,9 +4,12 @@ import type { Category, ListingQuery, SortKey } from '@/types';
 type Raw = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-/** URL (?q=&category=&minPrice=&maxPrice=&sort=&page=) -> a validated query. Never trusts input. */
-export function parseListingQuery(sp: Raw): ListingQuery {
-  const validCats = CATEGORIES.map((c) => c.value);
+/**
+ * URL (?q=&category=&minPrice=&maxPrice=&sort=&page=&available=) -> a validated query. Never trusts input.
+ * `validCategories` is the live list from the database; the built-in list is the fallback.
+ */
+export function parseListingQuery(sp: Raw, validCategories?: string[]): ListingQuery {
+  const validCats = validCategories ?? CATEGORIES.map((c) => c.value);
   const cats = (one(sp.category) ?? '')
     .split(',')
     .filter((c): c is Category => (validCats as string[]).includes(c));

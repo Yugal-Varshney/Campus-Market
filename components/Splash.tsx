@@ -44,12 +44,12 @@ export default function Splash() {
   return (
     <div className={`splash${running ? ' running' : ''}${leaving ? ' leaving' : ''}`} id="splash">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="bg" src="/images/cmbg.png" alt="" aria-hidden="true" />
+      <img className="bg" src="/images/cmbg.webp" alt="" aria-hidden="true" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={imgRef}
         className="fg"
-        src="/images/cmbg.png"
+        src="/images/cmbg.webp"
         onError={go}
         alt="Campus Market — Buy, Sell, Trade, Connect. Everything you need, right here on campus."
       />

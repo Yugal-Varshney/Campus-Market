@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getCurrentRole, getCurrentUser } from '@/lib/auth/session';
 import { getMyListings } from '@/lib/listings/queries';
+import { getCategoryNames } from '@/lib/categories';
 import ProductGrid from '@/components/marketplace/ProductGrid';
 
 export const metadata: Metadata = { title: 'My profile' };
@@ -9,7 +10,7 @@ export const metadata: Metadata = { title: 'My profile' };
 export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) return null; // middleware redirects signed-out visitors
-  const [listings, role] = await Promise.all([getMyListings(user.id), getCurrentRole()]);
+  const [listings, role, categoryNames] = await Promise.all([getMyListings(user.id), getCurrentRole(), getCategoryNames()]);
 
   return (
     <div className="messages-shell">
@@ -22,7 +23,7 @@ export default async function ProfilePage() {
         {listings.length === 0 ? (
           <div className="empty-state"><h2 className="font-display">NOTHING POSTED YET</h2><p>Your listings show up here.</p><Link href="/sell" className="btn btn-dark">Sell an item</Link></div>
         ) : (
-          <ProductGrid items={listings} wishlistIds={[]} cols={4} />
+          <ProductGrid items={listings} wishlistIds={[]} cols={4} categoryNames={categoryNames} />
         )}
       </section>
     </div>

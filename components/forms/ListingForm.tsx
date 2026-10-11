@@ -1,10 +1,10 @@
 'use client';
 
 import { useActionState, useRef, useState } from 'react';
-import { CATEGORIES, CONDITIONS, MAX_PRICE, RENT_UNITS } from '@/lib/constants';
+import { CONDITIONS, MAX_PRICE, RENT_UNITS } from '@/lib/constants';
 import { compressImage } from '@/lib/image-compress';
 import { validateImageMeta, validateListing } from '@/lib/validation/listing';
-import type { ActionState, ListingType, RentUnit } from '@/types';
+import type { ActionState, CategoryOption, ListingType, RentUnit } from '@/types';
 
 export interface ListingFormInitial {
   title: string; description: string; category: string; listingType: ListingType;
@@ -13,7 +13,7 @@ export interface ListingFormInitial {
 }
 type Action = (prev: ActionState, fd: FormData) => Promise<ActionState>;
 
-export default function ListingForm({ action, initial, submitLabel }: { action: Action; initial?: ListingFormInitial; submitLabel: string }) {
+export default function ListingForm({ action, initial, submitLabel, categories }: { action: Action; initial?: ListingFormInitial; submitLabel: string; categories: CategoryOption[] }) {
   const [state, formAction, pending] = useActionState(action, {} as ActionState);
   const [mode, setMode] = useState<ListingType>(initial?.listingType ?? 'sell');
   const [rentUnit, setRentUnit] = useState<RentUnit>(initial?.rentUnit ?? 'week');
@@ -44,7 +44,7 @@ export default function ListingForm({ action, initial, submitLabel }: { action: 
       category: String(fd.get('category') ?? ''), listingType: mode,
       price: Number(fd.get('price')), condition: String(fd.get('condition') ?? ''), phone: String(fd.get('phone') ?? ''),
       rentUnit: String(fd.get('rentUnit') ?? ''), rentMaxUnits: String(fd.get('rentMaxUnits') ?? ''),
-    });
+    }, categories.map((c) => c.value));
     const photo = fd.get('photo');
     const hasPhoto = photo instanceof File && photo.size > 0;
     const msg = error ?? (!editing && !hasPhoto ? 'Add a photo — real photos get far more replies.' : '');
@@ -107,7 +107,7 @@ export default function ListingForm({ action, initial, submitLabel }: { action: 
           <div>
             <label className="field-label" htmlFor="sell-category">Category</label>
             <select id="sell-category" name="category" className="field-input" defaultValue={initial?.category ?? 'books'}>
-              {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+              {categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           </div>
           <div>

@@ -18,8 +18,8 @@
   --foreground: oklch(0.165 0.02 264);
   --card: #ffffff;
   --card: oklch(1 0 0);
-  --primary: #cf4a1c;
-  --primary: oklch(0.595 0.208 36);
+  --primary: #c5461b;
+  --primary: oklch(0.565 0.171 37.5);
   --primary-foreground: #fdfaf5;
   --primary-foreground: oklch(0.985 0.01 90);
   --secondary: #e9e6de;
@@ -27,16 +27,16 @@
   --secondary-foreground: var(--foreground);
   --muted: #ececE4;
   --muted: oklch(0.94 0.006 90);
-  --muted-foreground: #6b6d7a;
-  --muted-foreground: oklch(0.5 0.02 264);
+  --muted-foreground: #656773;
+  --muted-foreground: oklch(0.516 0.019 278.2);
   --destructive: #c22b1f;
   --destructive: oklch(0.577 0.215 27);
   --destructive-foreground: #fdfaf5;
   --destructive-foreground: oklch(0.985 0.01 90);
   --border: rgba(20, 21, 29, 0.12);
   --border: oklch(0.165 0.02 264 / 12%);
-  --ring: rgba(207, 74, 28, 0.4);
-  --ring: oklch(0.595 0.208 36 / 40%);
+  --ring: rgba(197, 70, 27, 0.4);
+  --ring: oklch(0.565 0.171 37.5 / 40%);
 }
 
 * {
@@ -1272,3 +1272,9 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .mod-hint { font-size: 0.8rem; color: var(--muted-foreground); }
 .mod-select { width: auto; }
 .mod-ok { font-size: 0.85rem; font-weight: 600; }
+
+/* Phase 6: colour contrast (primary and muted text darkened to reach WCAG AA 4.5:1), motion, chat preview */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+.conversation-item .preview { margin-top: 0.15rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

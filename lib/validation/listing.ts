@@ -28,7 +28,7 @@ export interface ValidListing {
 export const PHONE_RE = /^[0-9+()\s-]{7,20}$/;
 
 /** Shared by the form (UX) and the server action (enforcement). The DB re-checks too. */
-export function validateListing(i: ListingInput): { value?: ValidListing; error?: string } {
+export function validateListing(i: ListingInput, allowedCategories?: string[]): { value?: ValidListing; error?: string } {
   const title = i.title.trim();
   const description = i.description.trim();
   const phone = i.phone.trim();
@@ -37,7 +37,8 @@ export function validateListing(i: ListingInput): { value?: ValidListing; error?
   if (description.length > 1000) return { error: 'Description must be 1000 characters or fewer.' };
   if (!Number.isFinite(i.price) || i.price <= 0) return { error: 'Price must be greater than ₹0.' };
   if (i.price > MAX_PRICE) return { error: 'That price looks too high for a campus listing.' };
-  if (!CATEGORIES.some((c) => c.value === i.category)) return { error: 'Pick a valid category.' };
+  const allowed = allowedCategories ?? CATEGORIES.map((c) => c.value);
+  if (!allowed.includes(i.category)) return { error: 'Pick a valid category.' };
   if (i.listingType !== 'sell' && i.listingType !== 'rent')
     return { error: 'Choose whether the item is for sale or for rent.' };
   if (!CONDITIONS.some((c) => c.value === i.condition)) return { error: 'Pick a valid condition.' };

@@ -2,17 +2,19 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { CATEGORIES, PRICE_SLIDER_MAX } from '@/lib/constants';
+import { PRICE_SLIDER_MAX } from '@/lib/constants';
 import { formatPrice } from '@/lib/format';
+import type { CategoryOption } from '@/types';
 
 /** Filters live in the URL (?category=&maxPrice=) so results are server-rendered, shareable and paginated. */
-export default function Filters() {
+export default function Filters({ categories }: { categories: CategoryOption[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
 
   const selected = (params.get('category') ?? '').split(',').filter(Boolean);
   const urlMax = params.get('maxPrice');
+  const includeSold = params.get('available') === 'all';
   const [max, setMax] = useState(urlMax ? Math.min(Number(urlMax), PRICE_SLIDER_MAX) : PRICE_SLIDER_MAX);
   const first = useRef(true);
 
@@ -48,13 +50,20 @@ export default function Filters() {
         <section>
           <h3 className="filter-section-title">Category</h3>
           <div className="filter-list">
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <label key={c.value} className="checkbox-row">
                 <input type="checkbox" checked={selected.includes(c.value)} onChange={() => toggle(c.value)} />
                 <span>{c.label}</span>
               </label>
             ))}
           </div>
+        </section>
+        <section>
+          <h3 className="filter-section-title">Availability</h3>
+          <label className="checkbox-row">
+            <input type="checkbox" checked={includeSold} onChange={() => push((p) => (includeSold ? p.delete('available') : p.set('available', 'all')))} />
+            <span>Include sold and rented</span>
+          </label>
         </section>
         <section>
           <h3 className="filter-section-title"><label htmlFor="price-range">Price Range</label></h3>

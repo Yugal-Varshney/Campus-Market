@@ -13,7 +13,8 @@ export default function ConversationList({ conversations, activeId, userId, pend
             <Link href={`/messages?c=${c.id}`} className={`conversation-item${c.id === activeId ? ' active' : ''}`} aria-current={c.id === activeId ? 'true' : undefined} style={{ display: 'block' }}>
               <p className="title">{c.itemTitle}</p>
               <p className="subtitle">Chatting with {c.buyerId === userId ? c.itemSellerName : c.buyerName}</p>
-              <p className="time font-mono" suppressHydrationWarning>{timeAgo(c.createdAt)}</p>
+              {c.lastMessage && <p className="preview">{c.lastSenderId === userId ? 'You: ' : ''}{c.lastMessage}</p>}
+              <p className="time font-mono" suppressHydrationWarning>{timeAgo(c.lastMessageAt ?? c.createdAt)}</p>
               {pendingIds.includes(c.id) && <span className="conv-tag">Contact request</span>}
             </Link>
           </li>
