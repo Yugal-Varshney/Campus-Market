@@ -1245,3 +1245,30 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .report-done { margin-top: 1rem; font-size: 0.85rem; color: var(--muted-foreground); }
 .chat-report-row { padding: 0.25rem 1rem; }
 .detail-rent-max { margin-top: 0.25rem; font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground); }
+
+/* Phase 5: account notices and staff screens */
+.account-banner { padding: 0.75rem 1rem; text-align: center; font-size: 0.875rem; border-bottom: 1px solid var(--border); background: var(--muted); }
+.account-banner.banned { background: var(--primary); color: var(--primary-foreground); }
+.account-banner.suspended { border-bottom-width: 2px; }
+.staff-nav, .staff-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+.staff-tab { padding: 0.4rem 0.8rem; border: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.staff-tab.active { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+.staff-table-wrap { overflow-x: auto; }
+.staff-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.staff-table th, .staff-table td { padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.staff-table th { font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); }
+.staff-status { font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; padding: 0.1rem 0.4rem; border: 1px solid var(--border); }
+.staff-status.pending, .staff-status.suspended, .staff-status.banned { border-color: var(--primary); }
+.staff-card { margin: 1rem 0; padding: 1rem; border: 1px solid var(--border); background: var(--card); }
+.staff-card h2 { font-size: 1rem; margin-bottom: 0.5rem; }
+.staff-card summary { cursor: pointer; }
+.staff-quote { margin: 0.5rem 0; padding-left: 0.75rem; border-left: 3px solid var(--border); white-space: pre-wrap; overflow-wrap: anywhere; }
+.staff-history { list-style: none; padding: 0; display: grid; gap: 0.5rem; font-size: 0.85rem; }
+.staff-search { display: flex; gap: 0.5rem; margin: 1rem 0; }
+.staff-search .field-input { flex: 1; }
+.mod-panel { display: grid; gap: 0.6rem; margin-top: 0.75rem; }
+.mod-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.mod-label { font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+.mod-hint { font-size: 0.8rem; color: var(--muted-foreground); }
+.mod-select { width: auto; }
+.mod-ok { font-size: 0.85rem; font-weight: 600; }

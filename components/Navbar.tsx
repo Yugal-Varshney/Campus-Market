@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth/session';
+import { getActingRole } from '@/lib/staff/auth';
 import { getWishlistIds } from '@/lib/listings/queries';
 import UserMenu from './UserMenu';
 
@@ -11,7 +12,7 @@ const HeartIcon = () => (
 
 export default async function Navbar() {
   const user = await getCurrentUser();
-  const wishlistCount = user ? (await getWishlistIds(user.id)).length : 0;
+  const [wishlistCount, role] = user ? await Promise.all([getWishlistIds(user.id).then((ids) => ids.length), getActingRole()]) : [0, 'student' as const];
 
   return (
     <nav className="navbar" aria-label="Main">
@@ -34,7 +35,7 @@ export default async function Navbar() {
                 <span className="icon-link-label"><HeartIcon /><span>Wishlist</span></span>
               </Link>
               <Link href="/sell" className="btn btn-dark">Sell an Item</Link>
-              <UserMenu email={user.email} name={user.displayName} />
+              <UserMenu email={user.email} name={user.displayName} role={role} />
             </>
           ) : (
             <Link href="/login" className="signin-link">Sign in</Link>

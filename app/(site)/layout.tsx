@@ -1,4 +1,5 @@
 import Navbar from '@/components/Navbar';
+import AccountBanner from '@/components/AccountBanner';
 import Footer from '@/components/Footer';
 import { getCurrentUser } from '@/lib/auth/session';
 import Link from 'next/link';
@@ -8,6 +9,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <>
       <Navbar />
+      <AccountBanner />
       <main id="main">{children}</main>
       <Footer />
       {user && (

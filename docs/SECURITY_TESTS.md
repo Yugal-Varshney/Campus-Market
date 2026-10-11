@@ -145,6 +145,62 @@ update public.items set rent_unit = 'week' where listing_type = 'sell';         
 rollback;
 ```
 
+## G. Staff permissions (Phase 5) — one block per expected error, every block ends in `rollback`
+Ids: `<STUDENT_ID>` (an ordinary student), `<MOD_ID>` (a moderator), `<ADMIN_ID>` (an admin), `<ITEM_ID>` (any listing).
+
+```sql
+-- G1 a student cannot use staff functions
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<STUDENT_ID>","role":"authenticated"}', true);
+select * from public.staff_get_user('<ADMIN_ID>');                       -- expect: Insufficient privileges.
+rollback;
+
+-- G2 a moderator cannot use admin functions
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<MOD_ID>","role":"authenticated"}', true);
+select public.admin_ban_user('<STUDENT_ID>', 'permission test');          -- expect: Insufficient privileges.
+rollback;
+
+-- G3 a moderator cannot suspend for more than 7 days
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<MOD_ID>","role":"authenticated"}', true);
+select public.staff_suspend_user('<STUDENT_ID>', now() + interval '8 days', 'permission test');   -- expect: Moderators can suspend for at most 7 days.
+rollback;
+
+-- G4 a moderator cannot act on staff accounts
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<MOD_ID>","role":"authenticated"}', true);
+select public.staff_warn_user('<ADMIN_ID>', 'permission test');           -- expect: Moderators can only act on student accounts.
+rollback;
+
+-- G5 nobody can act on their own account
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<ADMIN_ID>","role":"authenticated"}', true);
+select public.admin_set_role('<ADMIN_ID>', 'student', 'permission test'); -- expect: You cannot perform this action on your own account.
+rollback;
+
+-- G6 happy path: a moderator warns a student (returns an audit id; nothing is kept because of the rollback)
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<MOD_ID>","role":"authenticated"}', true);
+select public.staff_warn_user('<STUDENT_ID>', 'permission test');
+rollback;
+
+-- G7 a student sees only their own reports; staff see all
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<STUDENT_ID>","role":"authenticated"}', true);
+select count(*) from public.reports;                                      -- only reports this student filed
+select set_config('request.jwt.claims', '{"sub":"<MOD_ID>","role":"authenticated"}', true);
+select count(*) from public.reports;                                      -- every report
+rollback;
+```
+
 ## D. Manual (app + Storage)
 1. Sign-up with a non-college address (`@gmail.com`) → rejected by the app **and** by the DB trigger (try the Supabase Auth API directly with curl to confirm).
 2. Upload a `.svg`, a `.html` renamed to `.jpg`, and a >5 MB image through the sell form → all rejected. Direct upload via the JS client of an SVG → rejected by the bucket's MIME limit.

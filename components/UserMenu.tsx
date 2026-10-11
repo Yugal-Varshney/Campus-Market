@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { logout } from '@/lib/auth/actions';
 
-export default function UserMenu({ email, name }: { email: string; name: string }) {
+export default function UserMenu({ email, name, role = 'student' }: { email: string; name: string; role?: 'student' | 'moderator' | 'admin' }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -30,6 +30,8 @@ export default function UserMenu({ email, name }: { email: string; name: string 
         <Link href="/profile" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>My Profile</Link>
         <Link href="/wishlist" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>My Wishlist</Link>
         <Link href="/messages" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>Messages</Link>
+        {role !== 'student' && <Link href="/moderator" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>Moderation</Link>}
+        {role === 'admin' && <Link href="/admin" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>Admin</Link>}
         <form action={logout}>
           <button type="submit" className="user-dropdown-item danger" role="menuitem" style={{ width: '100%', textAlign: 'left' }}>Sign out</button>
         </form>

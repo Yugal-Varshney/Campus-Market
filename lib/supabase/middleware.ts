@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/types/database';
 
-const ALWAYS_PROTECTED = ['/sell', '/wishlist', '/messages', '/profile'];
+const ALWAYS_PROTECTED = ['/sell', '/wishlist', '/messages', '/profile', '/moderator', '/admin'];
 const AUTH_PAGES = ['/login', '/register'];
 
 /** Refreshes the auth cookie on every request and redirects based on sign-in state. */

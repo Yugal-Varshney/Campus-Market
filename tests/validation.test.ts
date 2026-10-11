@@ -6,6 +6,8 @@ import { resolveImageUrl } from '../lib/listings/mappers';
 import { friendlyDbError, knownDbError } from '../lib/errors';
 import { statusInfo, rentTerms } from '../lib/format';
 import { validateReport } from '../lib/validation/report';
+import { cleanReason, suspensionUntil, isUuid, isId } from '../lib/validation/staff';
+import { buildAccountNotice } from '../lib/account/notice';
 
 const ok = { title: 'Chem book', description: '', category: 'books', listingType: 'sell', price: 250, condition: 'good', phone: '+91 98765 43210' };
 let failed = 0;
@@ -103,6 +105,41 @@ t('report "other" needs 10 characters', !!validateReport('other', 'too short').e
 t('report "other" with explanation accepted', !!validateReport('other', 'Seller asked me to pay in advance').value);
 t('report details over 500 characters rejected', !!validateReport('scam', 'x'.repeat(501)).error);
 t('report details are trimmed', validateReport('scam', '  fake photo  ').value?.description === 'fake photo');
+
+// ---- staff screens: input rules ----
+t('reason of 2 characters rejected', 'error' in cleanReason('ab'));
+t('reason of 3 characters accepted', 'value' in cleanReason('abc'));
+t('reason is trimmed', (() => { const r = cleanReason('  spam listing  '); return 'value' in r && r.value === 'spam listing'; })());
+t('reason of 1001 characters rejected', 'error' in cleanReason('x'.repeat(1001)));
+t('non-string reason rejected', 'error' in cleanReason(undefined));
+const nowFixed = new Date('2026-10-12T10:00:00.000Z');
+t('moderator 7-day suspension accepted', 'until' in suspensionUntil('7', 'moderator', nowFixed));
+t('7-day suspension stays inside the 7-day cap', (() => { const r = suspensionUntil('7', 'moderator', nowFixed); return 'until' in r && r.until !== null && Date.parse(r.until) < nowFixed.getTime() + 7 * 86_400_000; })());
+t('moderator 14-day suspension rejected', 'error' in suspensionUntil('14', 'moderator', nowFixed));
+t('moderator indefinite suspension rejected', 'error' in suspensionUntil('indefinite', 'moderator', nowFixed));
+t('admin indefinite suspension has no end date', (() => { const r = suspensionUntil('indefinite', 'admin', nowFixed); return 'until' in r && r.until === null; })());
+t('admin 30-day suspension accepted', 'until' in suspensionUntil('30', 'admin', nowFixed));
+t('suspension of 0 days rejected', 'error' in suspensionUntil('0', 'admin', nowFixed));
+t('suspension of 1.5 days rejected', 'error' in suspensionUntil('1.5', 'admin', nowFixed));
+t('suspension with junk choice rejected', 'error' in suspensionUntil('forever', 'admin', nowFixed));
+t('uuid accepted', isUuid('3f2b8c1e-6a4d-4e7b-9c2a-1d5e8f7a6b3c'));
+t('non-uuid rejected', !isUuid('not-a-uuid') && !isUuid(42) && !isUuid("1' or '1'='1"));
+t('positive integer id accepted', isId(5));
+t('zero, fractions and strings rejected as ids', !isId(0) && !isId(1.5) && !isId('5') && !isId(-3));
+
+// ---- account notices shown to the person ----
+const clean = { account_status: 'active', suspended_until: null, suspension_reason: null, last_warning_at: null, last_warning_reason: null };
+const t0 = Date.parse('2026-10-12T10:00:00Z');
+t('active account has no notice', buildAccountNotice(clean, t0) === null);
+t('missing profile has no notice', buildAccountNotice(null, t0) === null);
+t('banned account sees a ban notice', buildAccountNotice({ ...clean, account_status: 'banned' }, t0)?.kind === 'banned');
+t('ban reason is not shown to the person', !/secret/.test(buildAccountNotice({ ...clean, account_status: 'banned', suspension_reason: 'secret staff note' }, t0)?.text ?? ''));
+t('suspension notice shows end date', /2026-10-14 10:00 UTC/.test(buildAccountNotice({ ...clean, account_status: 'suspended', suspended_until: '2026-10-14T10:00:00Z' }, t0)?.text ?? ''));
+t('suspension notice shows reason', /selling fake items/.test(buildAccountNotice({ ...clean, account_status: 'suspended', suspended_until: '2026-10-14T10:00:00Z', suspension_reason: 'selling fake items' }, t0)?.text ?? ''));
+t('expired suspension shows nothing', buildAccountNotice({ ...clean, account_status: 'suspended', suspended_until: '2026-10-11T10:00:00Z' }, t0) === null);
+t('open-ended suspension says until further notice', /further notice/.test(buildAccountNotice({ ...clean, account_status: 'suspended' }, t0)?.text ?? ''));
+t('recent warning shown', buildAccountNotice({ ...clean, last_warning_at: '2026-10-10T10:00:00Z', last_warning_reason: 'be polite' }, t0)?.kind === 'warned');
+t('old warning hidden after 14 days', buildAccountNotice({ ...clean, last_warning_at: '2026-09-20T10:00:00Z', last_warning_reason: 'be polite' }, t0) === null);
 
 if (failed) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
 console.log('\nAll tests passed');
