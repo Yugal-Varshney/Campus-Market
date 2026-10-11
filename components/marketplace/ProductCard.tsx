@@ -1,12 +1,13 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { categoryLabel } from '@/lib/constants';
-import { formatPrice, statusInfo } from '@/lib/format';
+import { formatPrice, rentTerms, statusInfo } from '@/lib/format';
 import type { Product } from '@/types';
 import WishlistButton from './WishlistButton';
 
 export default function ProductCard({ item, wishlisted, index = 0 }: { item: Product; wishlisted: boolean; index?: number }) {
   const st = statusInfo(item);
+  const terms = rentTerms(item);
   return (
     <article className={`item-card${st.done ? ' is-done' : ''}`} style={{ animationDelay: `${Math.min(index, 8) * 50}ms` }}>
       <div className="item-media-wrap">
@@ -30,7 +31,7 @@ export default function ProductCard({ item, wishlisted, index = 0 }: { item: Pro
         </div>
         <div className="item-price-block">
           <span className="item-price">{formatPrice(item.price)}</span>
-          {item.listingType === 'rent' && <span className="item-price-unit">per week</span>}
+          {terms && <span className="item-price-unit">{terms.perUnit}</span>}
         </div>
       </div>
     </article>

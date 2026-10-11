@@ -1,20 +1,23 @@
 'use client';
 
 import { useActionState, useRef, useState } from 'react';
-import { CATEGORIES, CONDITIONS, MAX_PRICE } from '@/lib/constants';
+import { CATEGORIES, CONDITIONS, MAX_PRICE, RENT_UNITS } from '@/lib/constants';
 import { compressImage } from '@/lib/image-compress';
 import { validateImageMeta, validateListing } from '@/lib/validation/listing';
-import type { ActionState, ListingType } from '@/types';
+import type { ActionState, ListingType, RentUnit } from '@/types';
 
 export interface ListingFormInitial {
   title: string; description: string; category: string; listingType: ListingType;
   price: number; condition: string; phone: string; imageUrl: string | null;
+  rentUnit: RentUnit | null; rentMaxUnits: number | null;
 }
 type Action = (prev: ActionState, fd: FormData) => Promise<ActionState>;
 
 export default function ListingForm({ action, initial, submitLabel }: { action: Action; initial?: ListingFormInitial; submitLabel: string }) {
   const [state, formAction, pending] = useActionState(action, {} as ActionState);
   const [mode, setMode] = useState<ListingType>(initial?.listingType ?? 'sell');
+  const [rentUnit, setRentUnit] = useState<RentUnit>(initial?.rentUnit ?? 'week');
+  const unitInfo = RENT_UNITS.find((u) => u.value === rentUnit) ?? RENT_UNITS[1];
   const [preview, setPreview] = useState<string | null>(initial?.imageUrl ?? null);
   const [clientError, setClientError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -40,6 +43,7 @@ export default function ListingForm({ action, initial, submitLabel }: { action: 
       title: String(fd.get('title') ?? ''), description: String(fd.get('description') ?? ''),
       category: String(fd.get('category') ?? ''), listingType: mode,
       price: Number(fd.get('price')), condition: String(fd.get('condition') ?? ''), phone: String(fd.get('phone') ?? ''),
+      rentUnit: String(fd.get('rentUnit') ?? ''), rentMaxUnits: String(fd.get('rentMaxUnits') ?? ''),
     });
     const photo = fd.get('photo');
     const hasPhoto = photo instanceof File && photo.size > 0;
@@ -72,7 +76,7 @@ export default function ListingForm({ action, initial, submitLabel }: { action: 
         </div>
         <div className="field-row-2">
           <div>
-            <label className="field-label" htmlFor="sell-price">{mode === 'rent' ? 'Price per week' : 'Price'}</label>
+            <label className="field-label" htmlFor="sell-price">{mode === 'rent' ? `Price per ${unitInfo.label.toLowerCase()}` : 'Price'}</label>
             <div className="price-input-wrap">
               <span className="dollar" aria-hidden="true">₹</span>
               <input id="sell-price" name="price" type="number" inputMode="decimal" className="field-input" defaultValue={initial?.price} placeholder="250" min={1} max={MAX_PRICE} step="1" />
@@ -85,6 +89,20 @@ export default function ListingForm({ action, initial, submitLabel }: { action: 
             </select>
           </div>
         </div>
+        {mode === 'rent' && (
+          <div className="field-row-2">
+            <div>
+              <label className="field-label" htmlFor="sell-rent-unit">Rent is charged per</label>
+              <select id="sell-rent-unit" name="rentUnit" className="field-input" value={rentUnit} onChange={(e) => setRentUnit(e.target.value as RentUnit)}>
+                {RENT_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="field-label" htmlFor="sell-rent-max">Longest rental (optional)</label>
+              <input id="sell-rent-max" name="rentMaxUnits" type="number" inputMode="numeric" className="field-input" defaultValue={initial?.rentMaxUnits ?? ''} min={1} max={unitInfo.max} step="1" placeholder={`e.g. 4 (${unitInfo.plural})`} />
+            </div>
+          </div>
+        )}
         <div className="field-row-2">
           <div>
             <label className="field-label" htmlFor="sell-category">Category</label>
@@ -97,7 +115,7 @@ export default function ListingForm({ action, initial, submitLabel }: { action: 
             <input id="sell-phone" name="phone" type="tel" className="field-input" defaultValue={initial?.phone} placeholder="+91 98765 43210" maxLength={20} autoComplete="tel" />
           </div>
         </div>
-        <p className="field-hint">Buyers see your college email and this phone number when they tap &quot;Contact Seller&quot;.</p>
+        <p className="field-hint">Your college email and phone stay private. Buyers can ask you to share them in a chat, and you decide whether to approve each request.</p>
         {error && <p className="error-box" role="alert">{error}</p>}
         <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={pending}>{pending ? 'SAVING…' : submitLabel}</button>
       </div>

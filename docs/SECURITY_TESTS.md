@@ -89,6 +89,62 @@ select public.is_display_name_reserved('Priya Sharma');         -- expect false
 | `select * from public.reports;` | only A's own reports |
 | report a listing A owns | `You cannot report yourself or your own listing.` |
 
+## F. V4 behaviour (migrations 010–011) — one block per expected error (an error aborts the transaction)
+Use real ids: `<BUYER_ID>`, `<SELLER_ID>`, `<OTHER_ID>` (a third student), `<CONV_ID>` (a chat between buyer and seller), `<ITEM_ID>` (that chat's listing).
+
+```sql
+-- F1 happy path (no errors expected): request -> approve -> buyer reads contact -> seller stops sharing
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<BUYER_ID>","role":"authenticated"}', true);
+select public.request_contact(<CONV_ID>);                 -- requested
+select set_config('request.jwt.claims', '{"sub":"<SELLER_ID>","role":"authenticated"}', true);
+select public.respond_contact_request(<CONV_ID>, true);   -- approved
+select set_config('request.jwt.claims', '{"sub":"<BUYER_ID>","role":"authenticated"}', true);
+select * from public.get_contact(<ITEM_ID>);             -- one row: name, email, phone
+select set_config('request.jwt.claims', '{"sub":"<SELLER_ID>","role":"authenticated"}', true);
+select public.revoke_contact_share(<CONV_ID>);
+rollback;
+
+-- F2 without approval the buyer cannot read contact details
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<BUYER_ID>","role":"authenticated"}', true);
+select * from public.get_contact(<ITEM_ID>);             -- expect: CONTACT_SHARE: the seller has not shared contact details with you yet...
+rollback;
+
+-- F3 the buyer cannot approve their own request
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<BUYER_ID>","role":"authenticated"}', true);
+select public.request_contact(<CONV_ID>);
+select public.respond_contact_request(<CONV_ID>, true);   -- expect: CONTACT_SHARE: there is no request to answer.
+rollback;
+
+-- F4 a student outside the chat cannot request, and learns nothing about the chat
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<OTHER_ID>","role":"authenticated"}', true);
+select public.request_contact(<CONV_ID>);                 -- expect: CONTACT_SHARE: conversation not found.
+rollback;
+
+-- F5 the table is invisible to outsiders and read-only for participants
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"<OTHER_ID>","role":"authenticated"}', true);
+select count(*) from public.contact_shares;               -- expect 0
+update public.contact_shares set status = 'approved';     -- expect: permission denied for table contact_shares
+rollback;
+
+-- F6 rental rules are enforced by the database (run as postgres in the SQL Editor)
+begin;
+update public.items set rent_unit = 'year' where listing_type = 'rent';          -- expect: violates check constraint "items_rent_terms_valid"
+rollback;
+begin;
+update public.items set rent_unit = 'week' where listing_type = 'sell';          -- expect: violates check constraint "items_rent_terms_valid"
+rollback;
+```
+
 ## D. Manual (app + Storage)
 1. Sign-up with a non-college address (`@gmail.com`) → rejected by the app **and** by the DB trigger (try the Supabase Auth API directly with curl to confirm).
 2. Upload a `.svg`, a `.html` renamed to `.jpg`, and a >5 MB image through the sell form → all rejected. Direct upload via the JS client of an SVG → rejected by the bucket's MIME limit.

@@ -1,3 +1,4 @@
+import { RENT_UNITS } from '@/lib/constants';
 import type { Listing } from '@/types';
 
 export function formatPrice(price: number | string): string {
@@ -23,4 +24,18 @@ export function statusInfo(item: Pick<Listing, 'status' | 'listingType'>) {
   if (item.status === 'inactive') return { label: 'UNAVAILABLE', cls: 'sold', done: true };
   if (item.listingType === 'rent') return { label: 'FOR RENT', cls: 'rent', done: false };
   return { label: 'FOR SALE', cls: 'sell', done: false };
+}
+
+/**
+ * How a rental is priced: "per week" plus an optional "up to 4 weeks" limit. Rentals created before migration 011
+ * have no unit stored; they were always shown per week, so that stays the fallback. Returns null for items for sale.
+ */
+export function rentTerms(item: Pick<Listing, 'listingType' | 'rentUnit' | 'rentMaxUnits'>): { perUnit: string; max: string | null } | null {
+  if (item.listingType !== 'rent') return null;
+  const unit = RENT_UNITS.find((u) => u.value === (item.rentUnit ?? 'week')) ?? RENT_UNITS[1];
+  const n = item.rentMaxUnits;
+  return {
+    perUnit: `per ${unit.label.toLowerCase()}`,
+    max: n && n > 0 ? `up to ${n} ${n === 1 ? unit.label.toLowerCase() : unit.plural}` : null,
+  };
 }

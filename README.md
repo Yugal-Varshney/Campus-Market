@@ -21,7 +21,7 @@ app/            routes (marketplace, sell, wishlist, messages, profile, auth cal
 components/     UI (marketplace/, product/, forms/, messages/)
 lib/            supabase/ auth/ listings/ messages/ validation/  + moderation/ risk/ ai/ (future seams)
 types/          database.ts (schema types) + domain types
-supabase/       schema.v1.sql (original) + migrations/ 001 audit · 002 security · 003 schema/functional · 004 V3 preflight audit · 005 audit + rate-limit core · 006 accounts + moderation · 007 reporting · 008 categories · 009 rate limits + storage hardening
+supabase/       schema.v1.sql (original) + migrations/ 001 audit · 002 security · 003 schema/functional · 004 V3 preflight audit · 005 audit + rate-limit core · 006 accounts + moderation · 007 reporting · 008 categories · 009 rate limits + storage hardening · 010 seller-consent contact sharing · 011 rental terms (unit + longest rental)
 tests/          validation tests (npm test)     docs/  security test plan
 ```
 Every database table keeps its V1 name: `profiles, items, item_private, wishlists, conversations, messages`. Seller contact lives in `item_private` and is only returned by the `get_contact()` RPC to signed-in users.
@@ -53,7 +53,7 @@ Every database table keeps its V1 name: `profiles, items, item_private, wishlist
 | `SUPABASE_SERVICE_ROLE_KEY` | not used; never prefix with `NEXT_PUBLIC_` |
 
 ### Commands
-`npm run dev` · `npm run build` · `npm start` · `npm run typecheck` · `npm test` (unit tests) · `npm run test:db` (local Postgres tests of the SQL, needs Python — see `supabase/tests/local/README.md`). `npm run lint` is declared but ESLint is not installed in this project yet. Production Supabase setup (SMTP, email templates, redirect URLs, confirmation): `docs/PHASE3_SUPABASE_RUNBOOK.md`.
+`npm run dev` · `npm run build` · `npm start` · `npm run typecheck` · `npm test` (unit tests) · `npm run test:db` (local Postgres tests of the SQL, needs Python — see `supabase/tests/local/README.md`). `npm run lint` is declared but ESLint is not installed in this project yet. Production Supabase setup (SMTP, email templates, redirect URLs, confirmation): `docs/PHASE3_SUPABASE_RUNBOOK.md`. Contact consent, rental terms and report buttons (migrations 010–011, deploy order): `docs/PHASE4_RUNBOOK.md`.
 
 ## Deployment (Vercel)
 Import the repo, set the env vars above (Production + Preview), deploy. `next.config.ts` allows images from your Supabase Storage host automatically. Uploads are capped at 4 MB (Vercel's request limit); the browser resizes photos first.

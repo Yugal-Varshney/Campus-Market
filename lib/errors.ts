@@ -10,7 +10,7 @@
  *
  * Pure module (no 'server-only' import) so it can be unit-tested with `npm test`.
  */
-const KNOWN_CODES = ['ACCOUNT_BANNED', 'ACCOUNT_SUSPENDED', 'LISTING_HIDDEN', 'LISTING_REPORTED', 'RESERVED_NAME'] as const;
+const KNOWN_CODES = ['ACCOUNT_BANNED', 'ACCOUNT_SUSPENDED', 'LISTING_HIDDEN', 'LISTING_REPORTED', 'RESERVED_NAME', 'CONTACT_SHARE'] as const;
 
 const capitalise = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 

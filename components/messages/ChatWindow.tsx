@@ -4,17 +4,23 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { sendMessage } from '@/lib/messages/actions';
-import type { Message } from '@/types';
+import type { ContactShareStatus, Message } from '@/types';
+import ReportButton from '@/components/report/ReportButton';
+import ContactPanel from './ContactPanel';
 import MessageBubble from './MessageBubble';
 
-interface Props { conversationId: number; userId: string; title: string; otherParty: string; itemId: number; initialMessages: Message[] }
+interface Props {
+  conversationId: number; userId: string; title: string; otherParty: string; itemId: number; initialMessages: Message[];
+  isBuyer: boolean; otherUserId: string; initialShare: ContactShareStatus | null;
+}
 
 /** Messages arrive over Supabase Realtime (postgres_changes) — no polling. RLS decides who receives each row. */
-export default function ChatWindow({ conversationId, userId, title, otherParty, itemId, initialMessages }: Props) {
+export default function ChatWindow({ conversationId, userId, title, otherParty, itemId, initialMessages, isBuyer, otherUserId, initialShare }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
   const [live, setLive] = useState(true);
+  const [tick, setTick] = useState(0);
   const [pending, start] = useTransition();
   const threadRef = useRef<HTMLDivElement>(null);
 
@@ -28,6 +34,7 @@ export default function ChatWindow({ conversationId, userId, title, otherParty, 
         (payload) => {
           const r = payload.new as { id: number; conversation_id: number; sender_id: string; body: string; created_at: string };
           add({ id: r.id, conversationId: r.conversation_id, senderId: r.sender_id, body: r.body, createdAt: r.created_at });
+          setTick((t) => t + 1); // a new message is a good moment to re-read the contact-request state
         })
       .subscribe((status) => setLive(status !== 'CHANNEL_ERROR' && status !== 'TIMED_OUT'));
     return () => { supabase.removeChannel(channel); };
@@ -55,6 +62,8 @@ export default function ChatWindow({ conversationId, userId, title, otherParty, 
         </div>
         <Link href={`/marketplace/${itemId}`} className="view-link font-mono">View listing</Link>
       </header>
+      <ContactPanel conversationId={conversationId} itemId={itemId} isBuyer={isBuyer} otherParty={otherParty} initialStatus={initialShare} refreshTick={tick} />
+      <div className="chat-report-row"><ReportButton userId={otherUserId} label="Report this user" /></div>
       <div className="chat-thread" ref={threadRef} role="log" aria-live="polite" aria-label="Messages">
         {messages.length === 0
           ? <p className="chat-empty">Say hi — ask about pickup, condition, or a better price.</p>

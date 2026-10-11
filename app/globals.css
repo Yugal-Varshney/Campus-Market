@@ -1232,3 +1232,16 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .manage-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
 .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.75rem; }
 .is-pending { opacity: 0.6; pointer-events: none; }
+
+/* Phase 4: contact consent, reporting, rental terms */
+.contact-bar { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); background: var(--muted); font-size: 0.85rem; }
+.contact-bar p { margin: 0 0 0.5rem; }
+.contact-bar-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.contact-bar .contact-card { margin-top: 0.5rem; }
+.conv-tag { display: inline-block; margin-top: 0.25rem; padding: 0.1rem 0.4rem; background: var(--primary); color: var(--primary-foreground); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; }
+.report-box { margin-top: 1rem; font-size: 0.85rem; }
+.report-toggle { background: none; border: 0; padding: 0; color: var(--muted-foreground); text-decoration: underline; cursor: pointer; font: inherit; }
+.report-form { display: grid; gap: 0.5rem; margin-top: 0.5rem; padding: 0.75rem; border: 1px solid var(--border); background: var(--card); }
+.report-done { margin-top: 1rem; font-size: 0.85rem; color: var(--muted-foreground); }
+.chat-report-row { padding: 0.25rem 1rem; }
+.detail-rent-max { margin-top: 0.25rem; font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground); }

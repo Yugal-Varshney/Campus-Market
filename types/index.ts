@@ -4,6 +4,9 @@ export type Category = Database['public']['Tables']['items']['Row']['category'];
 export type ListingType = Database['public']['Tables']['items']['Row']['listing_type'];
 export type ListingStatus = Database['public']['Tables']['items']['Row']['status'];
 export type Condition = 'new' | 'like-new' | 'good' | 'fair';
+export type RentUnit = 'day' | 'week' | 'month';
+export type ContactShareStatus = Database['public']['Tables']['contact_shares']['Row']['status'];
+export type ReportReason = Database['public']['Tables']['reports']['Row']['reason'];
 export type Role = Database['public']['Tables']['profiles']['Row']['role'];
 export type SortKey = 'newest' | 'price-asc' | 'price-desc';
 
@@ -31,6 +34,9 @@ export interface Listing {
   campusLocation: string;
   status: ListingStatus;
   createdAt: string;
+  /** Rentals only: what the price is per, and the longest rental the seller accepts (null = no limit). */
+  rentUnit: RentUnit | null;
+  rentMaxUnits: number | null;
 }
 export type Product = Listing;
 

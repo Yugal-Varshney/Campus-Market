@@ -22,6 +22,8 @@ function readListing(fd: FormData) {
     price: Number(str(fd, 'price')),
     condition: str(fd, 'condition'),
     phone: str(fd, 'phone'),
+    rentUnit: str(fd, 'rentUnit'),
+    rentMaxUnits: str(fd, 'rentMaxUnits'),
   });
 }
 const photo = (fd: FormData): File | null => {
@@ -56,6 +58,8 @@ export async function createListing(_: ActionState, fd: FormData): Promise<Actio
       price: value.price,
       condition_label: value.condition,
       image_url: up.url,
+      rent_unit: value.rentUnit,
+      rent_max_units: value.rentMaxUnits,
     })
     .select('id')
     .single();
@@ -108,6 +112,8 @@ export async function updateListing(id: number, _: ActionState, fd: FormData): P
       listing_type: value.listingType,
       price: value.price,
       condition_label: value.condition,
+      rent_unit: value.rentUnit,
+      rent_max_units: value.rentMaxUnits,
       ...(imageUrl ? { image_url: imageUrl } : {}),
     })
     .eq('id', id)

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getConversations, getMessages } from '@/lib/messages/queries';
+import { getSharesByConversation } from '@/lib/contact/queries';
 import ChatWindow from '@/components/messages/ChatWindow';
 import ConversationList from '@/components/messages/ConversationList';
 import ConversationsRefresher from '@/components/messages/ConversationsRefresher';
@@ -18,6 +19,8 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
 
   const active = conversations?.find((x) => String(x.id) === c) ?? null; // only conversations RLS returned can match
   const messages = active ? await getMessages(active.id).catch(() => []) : [];
+  const shares = conversations ? await getSharesByConversation() : {};
+  const pendingIds = conversations ? conversations.filter((x) => x.sellerId === user.id && shares[x.id] === 'requested').map((x) => x.id) : [];
 
   return (
     <div className="messages-shell">
@@ -31,12 +34,14 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
         <div className="messages-grid">
           <ConversationsRefresher />
           <aside className="conversation-panel" aria-label="Conversations">
-            <ConversationList conversations={conversations} activeId={active?.id ?? null} userId={user.id} />
+            <ConversationList conversations={conversations} activeId={active?.id ?? null} userId={user.id} pendingIds={pendingIds} />
           </aside>
           <section className="chat-panel-col">
             {active ? (
               <ChatWindow key={active.id} conversationId={active.id} userId={user.id} itemId={active.itemId} title={active.itemTitle}
-                otherParty={active.buyerId === user.id ? active.itemSellerName : active.buyerName} initialMessages={messages} />
+                otherParty={active.buyerId === user.id ? active.itemSellerName : active.buyerName} initialMessages={messages}
+                isBuyer={active.buyerId === user.id} otherUserId={active.buyerId === user.id ? active.sellerId : active.buyerId}
+                initialShare={shares[active.id] ?? null} />
             ) : (
               <div className="chat-placeholder">
                 <h2 className="font-display">PICK A CONVERSATION</h2>

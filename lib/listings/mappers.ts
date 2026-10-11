@@ -2,25 +2,9 @@ import type { Database } from '@/types/database';
 import type { Listing } from '@/types';
 
 type ItemRow = Database['public']['Tables']['items']['Row'];
-type ListingQueryRow = Pick<
-  ItemRow,
-  | 'id'
-  | 'seller_id'
-  | 'seller_name'
-  | 'title'
-  | 'description'
-  | 'category'
-  | 'listing_type'
-  | 'price'
-  | 'condition_label'
-  | 'image_url'
-  | 'campus_location'
-  | 'status'
-  | 'created_at'
->;
 
 export const ITEM_COLUMNS =
-  'id, seller_id, seller_name, title, description, category, listing_type, price, condition_label, image_url, campus_location, status, created_at';
+  'id, seller_id, seller_name, title, description, category, listing_type, price, condition_label, image_url, campus_location, status, created_at, rent_unit, rent_max_units';
 
 /** Demo rows store a bare filename ("calculator.jpg"); those live in /public/uploads. */
 export function resolveImageUrl(url: string | null): string | null {
@@ -29,7 +13,7 @@ export function resolveImageUrl(url: string | null): string | null {
   return '/uploads/' + url.replace(/^\/?(\.\.\/)?(uploads\/)?/, '');
 }
 
-export function toListing(r: ListingQueryRow): Listing {
+export function toListing(r: ItemRow): Listing {
   return {
     id: r.id,
     sellerId: r.seller_id,
@@ -44,5 +28,7 @@ export function toListing(r: ListingQueryRow): Listing {
     campusLocation: r.campus_location,
     status: r.status,
     createdAt: r.created_at,
+    rentUnit: r.rent_unit,
+    rentMaxUnits: r.rent_max_units,
   };
 }

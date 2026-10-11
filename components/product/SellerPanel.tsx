@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { deleteListing, revealContact, setListingStatus } from '@/lib/listings/actions';
 import { startConversation } from '@/lib/messages/actions';
-import type { Listing, SellerContact } from '@/types';
+import type { ContactShareStatus, Listing, SellerContact } from '@/types';
 import WishlistButton from '@/components/marketplace/WishlistButton';
 
 /** Owner controls or buyer actions. These checks are UX only — RLS enforces them in the database. */
-export default function SellerPanel({ item, isOwner, wishlisted, hasConversations = false }: { item: Listing; isOwner: boolean; wishlisted: boolean; hasConversations?: boolean }) {
+export default function SellerPanel({ item, isOwner, wishlisted, hasConversations = false, share = null }: { item: Listing; isOwner: boolean; wishlisted: boolean; hasConversations?: boolean; share?: { conversationId: number; status: ContactShareStatus } | null }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [contact, setContact] = useState<SellerContact | null>(null);
@@ -59,27 +59,31 @@ export default function SellerPanel({ item, isOwner, wishlisted, hasConversation
 
   return (
     <>
-      {contact && (
+      {contact && share?.status === 'approved' && (
         <div className="contact-card">
           <p className="eyebrow">Seller contact</p>
           <p className="contact-line"><span>Name</span><strong>{contact.name}</strong></p>
-          <p className="contact-line"><span>Email</span><a href={`mailto:${contact.email}`}>{contact.email}</a></p>
+          {contact.email && <p className="contact-line"><span>Email</span><a href={`mailto:${contact.email}`}>{contact.email}</a></p>}
           {contact.phone && <p className="contact-line"><span>Phone</span><a href={`tel:${contact.phone.replace(/[^\d+]/g, '')}`}>{contact.phone}</a></p>}
           <p className="contact-note">Meet on campus and check the item before paying.</p>
         </div>
       )}
       {error && <p className="error-box" role="alert">{error}</p>}
+      {!item.sellerId && <p className="owner-hint">This is a demo listing from the showcase, so there is no seller to contact.</p>}
+      {item.sellerId && !done && !share && <p className="owner-hint">Start a chat first. In the chat you can ask the seller to share their email and phone number.</p>}
+      {!done && share?.status === 'requested' && <p className="owner-hint">You asked the seller to share their contact details. Their answer will appear in your chat.</p>}
+      {!done && share?.status === 'declined' && <p className="owner-hint">The seller chose not to share contact details. You can still message them in the chat.</p>}
       <div className="detail-actions">
-        {!done && !contact && (
+        {!done && item.sellerId && (
           <button type="button" className="btn btn-primary" disabled={pending}
-            onClick={() => { setError(''); start(async () => { const r = await revealContact(item.id); r.contact ? setContact(r.contact) : setError(r.error ?? 'Unavailable.'); }); }}>
-            CONTACT SELLER
+            onClick={() => { setError(''); start(async () => { const r = await startConversation(item.id); r.conversationId ? router.push(`/messages?c=${r.conversationId}`) : setError(r.error ?? 'Could not start a chat.'); }); }}>
+            {share ? 'OPEN CHAT' : 'CHAT WITH SELLER'}
           </button>
         )}
-        {!done && item.sellerId && (
+        {!done && share?.status === 'approved' && !contact && (
           <button type="button" className="btn btn-outline" disabled={pending}
-            onClick={() => { setError(''); start(async () => { const r = await startConversation(item.id); r.conversationId ? router.push(`/messages?c=${r.conversationId}`) : setError(r.error ?? 'Could not start a chat.'); }); }}>
-            CHAT
+            onClick={() => { setError(''); start(async () => { const r = await revealContact(item.id); r.contact ? setContact(r.contact) : setError(r.error ?? 'Contact details are unavailable right now.'); }); }}>
+            VIEW CONTACT DETAILS
           </button>
         )}
         <WishlistButton itemId={item.id} initial={wishlisted} className="detail-wishlist-btn" />

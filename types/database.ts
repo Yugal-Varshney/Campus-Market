@@ -1,8 +1,9 @@
 /**
- * Hand-written types mirroring the Supabase schema (supabase/schema.v1.sql + migrations 002-009).
+ * Hand-written types mirroring the Supabase schema (supabase/schema.v1.sql + migrations 002-011).
  * Phase 2 added the V3 columns that exist in the database (items.moderation_*, profiles.account_status
- * and friends) and the `inactive` listing status. Tables/RPCs that no screen uses yet (reports,
- * categories, audit_logs, staff_* and admin_* functions) are intentionally not typed until they are needed.
+ * and friends) and the `inactive` listing status. Phase 4 added items.rent_unit / rent_max_units (011),
+ * contact_shares + its RPCs (010) and the reports insert. Tables/RPCs that no screen uses yet (categories,
+ * audit_logs, staff_* and admin_* functions) are intentionally not typed until they are needed.
  * Regenerate with `npx supabase gen types typescript --project-id <ref>` if you prefer.
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -13,6 +14,10 @@ type ListingStatus = 'active' | 'sold' | 'rented' | 'inactive';
 type ModerationStatus = 'approved' | 'pending' | 'hidden' | 'rejected';
 type AccountStatus = 'active' | 'suspended' | 'banned';
 type Role = 'student' | 'moderator' | 'admin';
+type RentUnit = 'day' | 'week' | 'month';
+type ContactShareStatus = 'requested' | 'approved' | 'declined' | 'revoked';
+type ReportReason = 'scam' | 'prohibited_item' | 'misleading_information' | 'duplicate_listing' | 'harassment' | 'inappropriate_content' | 'other';
+type ReportStatus = 'pending' | 'reviewing' | 'resolved' | 'dismissed';
 
 export type Database = {
   public: {
@@ -55,6 +60,8 @@ export type Database = {
           moderation_reason: string | null;
           moderated_at: string | null;
           moderated_by: string | null;
+          rent_unit: RentUnit | null;
+          rent_max_units: number | null;
         };
         Insert: {
           seller_id?: string | null;
@@ -68,6 +75,8 @@ export type Database = {
           image_url?: string | null;
           campus_location?: string;
           status?: ListingStatus;
+          rent_unit?: RentUnit | null;
+          rent_max_units?: number | null;
         };
         Update: {
           title?: string;
@@ -79,6 +88,8 @@ export type Database = {
           image_url?: string | null;
           campus_location?: string;
           status?: ListingStatus;
+          rent_unit?: RentUnit | null;
+          rent_max_units?: number | null;
         };
         Relationships: [];
       };
@@ -110,6 +121,36 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      contact_shares: {
+        Row: {
+          conversation_id: number;
+          item_id: number;
+          buyer_id: string;
+          seller_id: string;
+          status: ContactShareStatus;
+          requested_at: string;
+          decided_at: string | null;
+        };
+        Insert: never; // written only by the request_contact / respond_contact_request / revoke_contact_share RPCs
+        Update: never;
+        Relationships: [];
+      };
+      reports: {
+        Row: {
+          id: number;
+          reporter_id: string | null;
+          reported_user_id: string | null;
+          listing_id: number | null;
+          reason: ReportReason;
+          description: string;
+          status: ReportStatus;
+          created_at: string;
+        };
+        // reporter, status and the reported user of a listing report are set by a database trigger, not by the client
+        Insert: { listing_id?: number | null; reported_user_id?: string | null; reason: ReportReason; description?: string };
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -121,6 +162,9 @@ export type Database = {
         Args: { p_item_id: number };
         Returns: { name: string; email: string; phone: string }[];
       };
+      request_contact: { Args: { p_conversation_id: number }; Returns: string };
+      respond_contact_request: { Args: { p_conversation_id: number; p_approve: boolean }; Returns: string };
+      revoke_contact_share: { Args: { p_conversation_id: number }; Returns: undefined };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

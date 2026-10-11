@@ -1,5 +1,5 @@
-import { ALLOWED_IMAGE_TYPES, CATEGORIES, CONDITIONS, MAX_IMAGE_BYTES, MAX_PRICE } from '@/lib/constants';
-import type { Category, Condition, ListingType } from '@/types';
+import { ALLOWED_IMAGE_TYPES, CATEGORIES, CONDITIONS, MAX_IMAGE_BYTES, MAX_PRICE, RENT_UNITS } from '@/lib/constants';
+import type { Category, Condition, ListingType, RentUnit } from '@/types';
 
 export interface ListingInput {
   title: string;
@@ -9,6 +9,9 @@ export interface ListingInput {
   price: number;
   condition: string;
   phone: string;
+  /** Rentals only. rentMaxUnits is optional and may be an empty string from the form. */
+  rentUnit?: string;
+  rentMaxUnits?: string | number | null;
 }
 export interface ValidListing {
   title: string;
@@ -18,6 +21,8 @@ export interface ValidListing {
   price: number;
   condition: Condition;
   phone: string;
+  rentUnit: RentUnit | null;
+  rentMaxUnits: number | null;
 }
 
 export const PHONE_RE = /^[0-9+()\s-]{7,20}$/;
@@ -37,6 +42,22 @@ export function validateListing(i: ListingInput): { value?: ValidListing; error?
     return { error: 'Choose whether the item is for sale or for rent.' };
   if (!CONDITIONS.some((c) => c.value === i.condition)) return { error: 'Pick a valid condition.' };
   if (phone && !PHONE_RE.test(phone)) return { error: 'Enter a valid phone number (digits, spaces, + and - only).' };
+
+  // Rental terms: required unit for rentals, optional whole-number maximum; always empty for items for sale.
+  let rentUnit: RentUnit | null = null;
+  let rentMaxUnits: number | null = null;
+  if (i.listingType === 'rent') {
+    const unit = RENT_UNITS.find((u) => u.value === i.rentUnit);
+    if (!unit) return { error: 'Choose whether the rent is charged per day, per week or per month.' };
+    rentUnit = unit.value;
+    const raw = i.rentMaxUnits;
+    if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+      const n = Number(raw);
+      if (!Number.isInteger(n) || n < 1 || n > unit.max)
+        return { error: `Longest rental must be a whole number from 1 to ${unit.max} ${unit.plural}, or left empty.` };
+      rentMaxUnits = n;
+    }
+  }
   return {
     value: {
       title,
@@ -46,6 +67,8 @@ export function validateListing(i: ListingInput): { value?: ValidListing; error?
       price: Math.round(i.price * 100) / 100,
       condition: i.condition as Condition,
       phone,
+      rentUnit,
+      rentMaxUnits,
     },
   };
 }

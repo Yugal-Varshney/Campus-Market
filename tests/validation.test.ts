@@ -4,7 +4,8 @@ import { isCollegeEmail, safeNext, validateRegistration, parseOtpType } from '..
 import { parseListingQuery } from '../lib/listings/search-params';
 import { resolveImageUrl } from '../lib/listings/mappers';
 import { friendlyDbError, knownDbError } from '../lib/errors';
-import { statusInfo } from '../lib/format';
+import { statusInfo, rentTerms } from '../lib/format';
+import { validateReport } from '../lib/validation/report';
 
 const ok = { title: 'Chem book', description: '', category: 'books', listingType: 'sell', price: 250, condition: 'good', phone: '+91 98765 43210' };
 let failed = 0;
@@ -69,6 +70,39 @@ t('non-string link type rejected', parseOtpType(['recovery']) === null);
 t('inactive listing shows UNAVAILABLE', statusInfo({ status: 'inactive', listingType: 'sell' }).label === 'UNAVAILABLE');
 t('inactive listing counts as done', statusInfo({ status: 'inactive', listingType: 'rent' }).done === true);
 t('active rent listing still FOR RENT', statusInfo({ status: 'active', listingType: 'rent' }).label === 'FOR RENT');
+
+// ---- rental terms (migration 011) ----
+const rent = { ...ok, listingType: 'rent', rentUnit: 'week', rentMaxUnits: '' };
+t('rental with unit accepted', validateListing(rent).value?.rentUnit === 'week');
+t('rental without unit rejected', !!validateListing({ ...rent, rentUnit: '' }).error);
+t('rental with bad unit rejected', !!validateListing({ ...rent, rentUnit: 'year' }).error);
+t('rental max empty means no limit', validateListing(rent).value?.rentMaxUnits === null);
+t('rental max 4 weeks accepted', validateListing({ ...rent, rentMaxUnits: '4' }).value?.rentMaxUnits === 4);
+t('rental max 0 rejected', !!validateListing({ ...rent, rentMaxUnits: '0' }).error);
+t('rental max fractional rejected', !!validateListing({ ...rent, rentMaxUnits: '2.5' }).error);
+t('rental max above unit limit rejected', !!validateListing({ ...rent, rentUnit: 'month', rentMaxUnits: '13' }).error);
+t('rental max 12 months accepted', validateListing({ ...rent, rentUnit: 'month', rentMaxUnits: '12' }).value?.rentMaxUnits === 12);
+t('sale listing drops rental fields', (() => { const v = validateListing({ ...ok, rentUnit: 'week', rentMaxUnits: '4' }).value; return v?.rentUnit === null && v?.rentMaxUnits === null; })());
+t('sale listing needs no rental fields', !!validateListing(ok).value);
+t('rentTerms per week with limit', (() => { const r = rentTerms({ listingType: 'rent', rentUnit: 'week', rentMaxUnits: 4 }); return r?.perUnit === 'per week' && r?.max === 'up to 4 weeks'; })());
+t('rentTerms singular unit', rentTerms({ listingType: 'rent', rentUnit: 'month', rentMaxUnits: 1 })?.max === 'up to 1 month');
+t('rentTerms per day without limit', (() => { const r = rentTerms({ listingType: 'rent', rentUnit: 'day', rentMaxUnits: null }); return r?.perUnit === 'per day' && r?.max === null; })());
+t('legacy rental without unit falls back to week', rentTerms({ listingType: 'rent', rentUnit: null, rentMaxUnits: null })?.perUnit === 'per week');
+t('sale listing has no rent terms', rentTerms({ listingType: 'sell', rentUnit: null, rentMaxUnits: null }) === null);
+
+// ---- contact consent messages (migration 010) ----
+t('contact share message mapped', friendlyDbError('CONTACT_SHARE: the seller has not shared contact details with you yet. Ask for them in the chat.', 'x').startsWith('The seller has not shared'));
+t('contact decline cooldown message mapped', /24 hours/.test(friendlyDbError('CONTACT_SHARE: the seller declined your request recently. You can ask again after 24 hours.', 'x')));
+t('plain contact errors still fall back', friendlyDbError('Listing not found.', 'generic') === 'generic');
+
+// ---- reports (migration 007 rules) ----
+t('report with reason accepted', validateReport('scam', '').value?.reason === 'scam');
+t('report without reason rejected', !!validateReport('', '').error);
+t('report with unknown reason rejected', !!validateReport('spam', '').error);
+t('report "other" needs 10 characters', !!validateReport('other', 'too short').error);
+t('report "other" with explanation accepted', !!validateReport('other', 'Seller asked me to pay in advance').value);
+t('report details over 500 characters rejected', !!validateReport('scam', 'x'.repeat(501)).error);
+t('report details are trimmed', validateReport('scam', '  fake photo  ').value?.description === 'fake photo');
 
 if (failed) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
 console.log('\nAll tests passed');
