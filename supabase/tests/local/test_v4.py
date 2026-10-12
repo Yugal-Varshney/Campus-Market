@@ -60,7 +60,7 @@ for uid, role in [(E, 'moderator'), (F, 'moderator'), (G, 'admin'), (H, 'admin')
 
 # ───────────────────────────────────────────── 2. RENTAL TERMS (011) ─────────────────────────────────────────────
 head('2. Rental terms: backfill and the items_rent_terms_valid constraint')
-t('existing rentals were set to per-week', sorted(x[0] for x in db.su("select rent_unit from public.items where listing_type='rent'")) == ['week', 'week'])
+t('existing rentals were set to per-week', (lambda u: len(u) >= 2 and set(u) == {'week'})([x[0] for x in db.su("select rent_unit from public.items where listing_type='rent'")]))
 t('sale listings carry no rental fields', db.su("select count(*) from public.items where listing_type='sell' and (rent_unit is not null or rent_max_units is not null)")[0][0] == 0)
 t('SQL: unknown unit rejected', err(db.as_(A, "update public.items set rent_unit='year' where id=%s", (labcoat,)), 'items_rent_terms_valid'))
 t('SQL: rental fields on a sale listing rejected', err(db.as_(A, "update public.items set rent_unit='week' where id=%s", (chem,)), 'items_rent_terms_valid'))

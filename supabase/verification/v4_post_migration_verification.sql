@@ -44,10 +44,10 @@ with c(area, check_name, expected, actual) as (
                 from pg_constraint k where k.conname = 'items_rent_terms_valid' and k.conrelid = to_regclass('public.items')), 'missing')
   union all
   select 'data', 'rentals without a rent_unit', '0',
-    (select count(*)::text from public.items where listing_type = 'rent' and rent_unit is null)
+    (select count(*)::text from public.items i where i.listing_type = 'rent' and to_jsonb(i)->>'rent_unit' is null)
   union all
   select 'data', 'sale listings carrying rental fields', '0',
-    (select count(*)::text from public.items where listing_type <> 'rent' and (rent_unit is not null or rent_max_units is not null))
+    (select count(*)::text from public.items i where i.listing_type <> 'rent' and (to_jsonb(i)->>'rent_unit' is not null or to_jsonb(i)->>'rent_max_units' is not null))
 ),
 r as (
   select area, check_name, expected, actual, case when actual = expected then 'PASS' else 'FAIL' end as status from c
