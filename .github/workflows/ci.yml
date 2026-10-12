@@ -38,6 +38,8 @@ jobs:
         run: npm test
       - name: Type check
         run: npm run typecheck
+      - name: Lint
+        run: npm run lint
       - name: Production build
         run: npm run build
         env:
@@ -89,9 +91,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - name: Install (uses the lockfile once you have committed one)
-        run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+      - name: Install (from the committed lockfile)
+        run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
       - uses: actions/upload-artifact@v4

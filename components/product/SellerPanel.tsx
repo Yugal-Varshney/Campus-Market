@@ -76,13 +76,13 @@ export default function SellerPanel({ item, isOwner, wishlisted, hasConversation
       <div className="detail-actions">
         {!done && item.sellerId && (
           <button type="button" className="btn btn-primary" disabled={pending}
-            onClick={() => { setError(''); start(async () => { const r = await startConversation(item.id); r.conversationId ? router.push(`/messages?c=${r.conversationId}`) : setError(r.error ?? 'Could not start a chat.'); }); }}>
+            onClick={() => { setError(''); start(async () => { const r = await startConversation(item.id); if (r.conversationId) router.push(`/messages?c=${r.conversationId}`); else setError(r.error ?? 'Could not start a chat.'); }); }}>
             {share ? 'OPEN CHAT' : 'CHAT WITH SELLER'}
           </button>
         )}
         {!done && share?.status === 'approved' && !contact && (
           <button type="button" className="btn btn-outline" disabled={pending}
-            onClick={() => { setError(''); start(async () => { const r = await revealContact(item.id); r.contact ? setContact(r.contact) : setError(r.error ?? 'Contact details are unavailable right now.'); }); }}>
+            onClick={() => { setError(''); start(async () => { const r = await revealContact(item.id); if (r.contact) setContact(r.contact); else setError(r.error ?? 'Contact details are unavailable right now.'); }); }}>
             VIEW CONTACT DETAILS
           </button>
         )}

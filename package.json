@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "tsx tests/validation.test.ts && tsx tests/routes.test.ts && tsx tests/static.test.ts",
     "test:db": "python3 supabase/tests/local/test_v3.py && python3 supabase/tests/local/test_v4.py"
@@ -20,9 +20,12 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.27",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
