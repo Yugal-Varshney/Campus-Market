@@ -1,9 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/types/database';
-
-const ALWAYS_PROTECTED = ['/sell', '/wishlist', '/messages', '/profile', '/moderator', '/admin'];
-const AUTH_PAGES = ['/login', '/register'];
+import { AUTH_PAGES, isProtectedPath } from './paths';
 
 /** Refreshes the auth cookie on every request and redirects based on sign-in state. */
 export async function updateSession(request: NextRequest) {
@@ -29,9 +27,7 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const requireLoginToBrowse = process.env.REQUIRE_LOGIN_TO_BROWSE !== 'false';
 
-  const protectedPath =
-    ALWAYS_PROTECTED.some((p) => path === p || path.startsWith(p + '/')) ||
-    (requireLoginToBrowse && (path === '/marketplace' || path.startsWith('/marketplace/')));
+  const protectedPath = isProtectedPath(path, requireLoginToBrowse);
 
   const redirectTo = (to: string, withNext = false) => {
     const url = request.nextUrl.clone();

@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: "Also run the browser tests (needs the E2E_* secrets and a preview URL)"
+        type: boolean
+        default: false
+      base_url:
+        description: "Preview URL for the browser tests (never the production site)"
+        type: string
+        default: ""
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: App (unit tests, types, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Unit and architecture tests
+        run: npm test
+      - name: Type check
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
+        env:
+          # Placeholders: the build never talks to Supabase. Real values live only in Vercel.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      - name: Dependency audit (reported, does not block)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  database:
+    name: Database (migrations 002-011 on a local PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pgserver psycopg2-binary
+      - name: V3 migration tests
+        run: python3 supabase/tests/local/test_v3.py
+      - name: V4 migration and staff-permission tests
+        run: python3 supabase/tests/local/test_v4.py
+      - name: Verification-script tests
+        run: python3 supabase/tests/local/test_verification.py
+
+  e2e:
+    name: Browser tests (manual, preview URL)
+    if: github.event_name == 'workflow_dispatch' && inputs.run_e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: e2e
+    env:
+      E2E_BASE_URL: ${{ inputs.base_url }}
+      E2E_STUDENT_A_EMAIL: ${{ secrets.E2E_STUDENT_A_EMAIL }}
+      E2E_STUDENT_A_PASSWORD: ${{ secrets.E2E_STUDENT_A_PASSWORD }}
+      E2E_STUDENT_B_EMAIL: ${{ secrets.E2E_STUDENT_B_EMAIL }}
+      E2E_STUDENT_B_PASSWORD: ${{ secrets.E2E_STUDENT_B_PASSWORD }}
+      E2E_MODERATOR_EMAIL: ${{ secrets.E2E_MODERATOR_EMAIL }}
+      E2E_MODERATOR_PASSWORD: ${{ secrets.E2E_MODERATOR_PASSWORD }}
+      E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+      E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install (uses the lockfile once you have committed one)
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 14

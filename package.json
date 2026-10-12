@@ -8,8 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx tests/validation.test.ts",
-    "test:db": "python3 supabase/tests/local/test_v3.py"
+    "test": "tsx tests/validation.test.ts && tsx tests/routes.test.ts && tsx tests/static.test.ts",
+    "test:db": "python3 supabase/tests/local/test_v3.py && python3 supabase/tests/local/test_v4.py"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

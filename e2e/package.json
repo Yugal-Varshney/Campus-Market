@@ -1,0 +1,14 @@
+{
+  "name": "campus-market-e2e",
+  "private": true,
+  "description": "Browser tests for Campus Market. Kept apart from the app so the app's package.json and lockfile are untouched.",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.49.0"
+  }
+}
