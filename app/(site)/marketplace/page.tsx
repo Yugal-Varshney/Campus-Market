@@ -3,13 +3,15 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getListings, getWishlistIds } from '@/lib/listings/queries';
-import { parseListingQuery } from '@/lib/listings/search-params';
+import { marketplaceHref, parseListingQuery } from '@/lib/listings/search-params';
 import { getCategories, getCategoryNames } from '@/lib/categories';
 import type { Listing, Paginated } from '@/types';
 import Filters from '@/components/marketplace/Filters';
 import SortSelect from '@/components/marketplace/SortSelect';
 import ProductGrid from '@/components/marketplace/ProductGrid';
 import Pagination from '@/components/marketplace/Pagination';
+import CategoryChips from '@/components/marketplace/CategoryChips';
+import ActiveFilters from '@/components/marketplace/ActiveFilters';
 
 export const metadata: Metadata = { title: 'Marketplace' };
 
@@ -31,11 +33,15 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
   const flat = (k: string) => (Array.isArray(sp[k]) ? (sp[k] as string[])[0] : (sp[k] as string | undefined));
   const keep = { q: flat('q'), category: flat('category'), minPrice: flat('minPrice'), maxPrice: flat('maxPrice'), sort: flat('sort'), available: flat('available') };
 
+  // "Narrowed" = the person asked for something specific. The sold/rented switch alone doesn't count.
+  const narrowed = Boolean(query.q) || query.categories.length > 0 || query.minPrice !== null || query.maxPrice !== null;
+  const withSold = marketplaceHref({ ...keep, available: 'all', page: undefined });
+
   return (
     <div className="browse-grid">
       <Suspense fallback={<aside className="browse-sidebar" />}><Filters categories={categories} /></Suspense>
       <section className="browse-main">
-        {/* The navbar search box is hidden below 768px, so phones get their own. Filters are carried over. */}
+        {/* Search is always on the page. The navbar box is hidden on phones and for signed-out visitors. Filters are carried over. */}
         <form className="mobile-search" action="/marketplace" role="search">
           {keep.category && <input type="hidden" name="category" value={keep.category} />}
           {keep.minPrice && <input type="hidden" name="minPrice" value={keep.minPrice} />}
@@ -45,6 +51,10 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
           <input type="search" name="q" className="search-input" defaultValue={keep.q ?? ''} placeholder="Search books, notes, electronics..." aria-label="Search listings" maxLength={100} />
           <button type="submit" className="btn btn-dark btn-sm">SEARCH</button>
         </form>
+
+        <CategoryChips categories={categories} active={query.categories} params={{ ...keep, category: undefined }} />
+        <ActiveFilters query={query} categoryNames={categoryNames} />
+
         <header className="listings-header">
           <div className="listings-header-left">
             <h1 className="font-display">{query.q ? `RESULTS FOR “${query.q.toUpperCase()}”` : 'LATEST LISTINGS'}</h1>
@@ -56,13 +66,29 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
         {!result ? (
           <div className="empty-state solid" role="alert">
             <h2 className="font-display">The board didn&apos;t load</h2>
-            <p>Unable to load listings. Please refresh the page.</p>
+            <p>Something went wrong while loading listings. Check your connection and try again.</p>
+            <div className="empty-actions">
+              <Link href={marketplaceHref({ ...keep, page: undefined })} className="btn btn-dark">Try again</Link>
+            </div>
+          </div>
+        ) : result.items.length === 0 && narrowed ? (
+          <div className="empty-state">
+            <h2 className="font-display">No matches found</h2>
+            <p>{query.q ? `Nothing matched “${query.q}” with your current filters.` : 'No listings fit your current filters.'}</p>
+            <p>Check the spelling, try fewer words, or remove a filter.</p>
+            <div className="empty-actions">
+              <Link href={marketplaceHref({ sort: keep.sort })} className="btn btn-dark">Clear filters</Link>
+              {query.availableOnly && <Link href={withSold} className="btn btn-outline">Include sold and rented</Link>}
+            </div>
           </div>
         ) : result.items.length === 0 ? (
           <div className="empty-state">
             <h2 className="font-display">Nothing on the board yet</h2>
-            <p>No listings found. Try a different search or clear your filters.</p>
-            <Link href="/marketplace" className="btn btn-outline">Clear Filters</Link>
+            <p>Be the first to list something for your campus.</p>
+            <div className="empty-actions">
+              <Link href={user ? '/sell' : '/login?next=/sell'} className="btn btn-dark">Sell an item</Link>
+              {query.availableOnly && <Link href={withSold} className="btn btn-outline">Include sold and rented</Link>}
+            </div>
           </div>
         ) : (
           <>

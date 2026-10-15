@@ -203,7 +203,7 @@ main {
 /* Mobile search (Phase 2): shown only where the navbar search is hidden */
 .mobile-search { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .mobile-search .search-input { flex: 1; width: 100%; min-width: 0; }
-@media (min-width: 768px) { .mobile-search { display: none; } }
+@media (min-width: 768px) { .mobile-search { max-width: 36rem; } } /* Phase 2: the on-page search stays visible on desktop too */
 
 .search-wrap { position: relative; }
 
@@ -1123,100 +1123,29 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .contact-line a { color: var(--primary); font-weight: 600; word-break: break-all; text-align: right; }
 .contact-note { margin-top: 0.75rem; font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); }
 
-/* ---------- Splash (from V1 index.html) ---------- */
-    /* ---------- Splash screen ---------- */
-    :root { --splash-ms: 4500ms; }          /* how long the image stays (4.5 s) */
-
-
-    .splash {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-      background: #f6e3c0;                  /* same warm tone as the artwork's sky */
-      opacity: 1;
-      transition: opacity 0.45s ease;
-    }
-    .splash.leaving { opacity: 0; }
-
-    /* Blurred copy of the artwork — only visible where the main image doesn't reach (phones in portrait) */
-    .splash .bg,
-    .splash .fg {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;                    /* PC / landscape: full image, fills the screen */
-      object-position: 50% 50%;
-      user-select: none;
-      -webkit-user-drag: none;
-    }
-    /* .splash .bg {
-      filter: blur(22px) saturate(1.05);
-      transform: scale(1.15);
-      opacity: 0.55;                        /* washed toward the cream background so the fade looks clean 
-    } */
-    /* .splash .fg {
-      animation: splash-zoom var(--splash-ms) ease-out both;
-    }
-    @keyframes splash-zoom { from { scale: 1; } to { scale: 1.05; } } */
-
-    /* ---------- Mobile / portrait: focus on the MIDDLE of the image ----------
-       The image is 16:9, a phone is tall and narrow. Instead of squeezing the whole
-       picture in, we show only the centre (logo, name, tagline and the two students),
-       sized at 300vw so the title has comfortable side margins. The top and bottom edges
-       fade softly into the blurred background. */
-    @media (orientation: portrait) {
-      .splash .fg {
-        inset: auto;
-        left: 50%;
-        top: 50%;
-        width: 300vw;
-        max-width: none;
-        height: auto;
-        translate: -50% -50%;
-        -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14%, #000 86%, transparent 100%);
-                mask-image: linear-gradient(to bottom, transparent 0, #000 14%, #000 86%, transparent 100%);
-      }
-    }
-
-    /* ---------- Skip button + progress bar ---------- */
-    /* .skip {
-      position: absolute;
-      top: calc(env(safe-area-inset-top, 0px) + 14px);
-      right: 14px;
-      padding: 8px 16px;
-      border: 0;
-      border-radius: 999px;
-      background: rgba(20, 21, 29, 0.55);
-      color: #fff;
-      font: 500 13px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      letter-spacing: 0.02em;
-      cursor: pointer;
-      -webkit-backdrop-filter: blur(6px);
-              backdrop-filter: blur(6px);
-    }
-    .skip:hover, .skip:focus-visible { background: rgba(20, 21, 29, 0.8); outline: none; } */
-
-    .bar {
-      position: absolute;
-      left: 0; right: 0; bottom: 0;
-      height: 4px;
-      background: rgba(20, 21, 29, 0.12);
-    }
-    .bar i {
-      display: block;
-      height: 100%;
-      width: 100%;
-      background: #e8402f;                  /* matches the "MARKET" red */
-      transform-origin: left center;
-      transform: scaleX(0);
-    }
-    .splash.running .bar i { animation: splash-bar var(--splash-ms) linear forwards; }
-    @keyframes splash-bar { to { transform: scaleX(1); } }
-
-    @media (prefers-reduced-motion: reduce) {
-      .splash .fg { animation: none; }
-    }
+/* ---------- Home hero (Phase 1) ---------- */
+.hero { border-bottom: 1px solid var(--border); background: var(--secondary); }
+.hero-inner { max-width: 80rem; margin: 0 auto; padding: 1.75rem 1rem 1.5rem; }
+@media (min-width: 640px) { .hero-inner { padding: 2.25rem 1.5rem 2rem; } }
+@media (min-width: 1024px) { .hero-inner { padding: 2.5rem 2rem 2.25rem; } }
+.hero-eyebrow { margin: 0 0 0.35rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.hero-title { margin: 0; font-size: clamp(2.5rem, 8vw, 4.25rem); line-height: 0.95; letter-spacing: 0.01em; font-weight: 400; }
+.hero-title span { color: var(--primary); }
+.hero-lead { margin: 0.75rem 0 0; max-width: 36rem; font-size: 1rem; color: var(--muted-foreground); }
+.hero-search { display: flex; gap: 0.5rem; margin-top: 1.25rem; max-width: 36rem; }
+.hero-search .search-input { flex: 1; width: 100%; min-width: 0; height: 3rem; font-size: 1rem; }
+.hero-search .btn { height: 3rem; }
+.hero-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+.chip { display: inline-block; padding: 0.4rem 0.8rem; border: 1px solid var(--border); background: var(--card); font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.chip:hover { border-color: var(--primary); color: var(--primary); }
+.hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; margin-top: 1.25rem; }
+.hero-link { font-size: 0.875rem; font-weight: 500; text-underline-offset: 4px; }
+.hero-link:hover { color: var(--primary); text-decoration: underline; }
+.home-latest { max-width: 80rem; margin: 0 auto; padding: 1.75rem 1rem 0; }
+@media (min-width: 640px) { .home-latest { padding: 2rem 1.5rem 0; } }
+@media (min-width: 1024px) { .home-latest { padding: 2rem 2rem 0; } }
+.home-latest-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.home-latest-head h2 { margin: 0; font-size: 2rem; font-weight: 400; }
 
 /* ---------- V2 additions ---------- */
 .skip-link { position: absolute; left: -999px; top: 0; z-index: 100; background: var(--foreground); color: var(--background); padding: 0.75rem 1rem; }
@@ -1278,3 +1207,36 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
 .conversation-item .preview { margin-top: 0.15rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Phase 2: browsing ---------- */
+.chip:focus-visible, .filter-pill:focus-visible, .filters-toggle:focus-visible, .filters-clear:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.chip.is-active { background: var(--foreground); border-color: var(--foreground); color: var(--background); }
+
+.cat-chips { display: flex; gap: 0.5rem; margin: 0 0 1rem; padding: 0 0 0.25rem; list-style: none; overflow-x: auto; scrollbar-width: thin; }
+.cat-chips .chip { white-space: nowrap; }
+
+.active-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin: 0 0 1.25rem; }
+.active-filters ul { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.filter-pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.6rem; border: 1px solid var(--primary); background: color-mix(in oklab, var(--primary) 10%, transparent); color: var(--primary); font-family: var(--font-mono); font-size: 0.75rem; }
+.filter-pill:hover { background: var(--primary); color: var(--primary-foreground); }
+
+/* Filters: collapsed behind a button on phones and tablets, always open on desktop */
+.filters-toggle { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; padding: 0.7rem 1rem; border: 1px solid var(--border); background: var(--card); font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; }
+.filters-count { min-width: 1.25rem; padding: 0 0.35rem; background: var(--primary); color: var(--primary-foreground); text-align: center; }
+.browse-sidebar .sidebar-sticky { display: none; margin-top: 1rem; padding: 1rem; border: 1px solid var(--border); background: var(--card); }
+.browse-sidebar .sidebar-sticky.is-open { display: flex; }
+.sidebar-sticky.is-pending { opacity: 0.6; transition: opacity 0.15s ease; }
+@media (min-width: 1024px) {
+  .filters-toggle { display: none; }
+  .browse-sidebar .sidebar-sticky { display: flex; margin-top: 0; padding: 0; border: 0; background: none; }
+}
+.filters-clear { align-self: flex-start; padding: 0; border: 0; background: none; font-size: 0.875rem; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.filters-clear:hover { color: var(--primary); }
+
+/* Cards */
+.item-meta-line { margin-top: 0.25rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted-foreground); }
+
+/* Empty states */
+.empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1.5rem; }
+.empty-actions .btn { margin-top: 0; }
+@media (max-width: 639px) { .empty-state { padding: 2rem 1rem; } }

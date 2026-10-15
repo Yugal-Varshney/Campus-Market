@@ -13,7 +13,7 @@ on a phone where it was produced, so the visual and device checks at the end are
 | Colour contrast | Measured against WCAG AA (4.5:1 for normal text): white text on the orange buttons was 4.34:1, orange text on the page background 4.14:1, and grey text on grey panels 4.11–4.32:1. The orange (`#cf4a1c` to `#c5461b`) and the grey text (`#6b6d7a` to `#656773`) were darkened just enough to pass everywhere (all pairs now 4.5:1 or better). The look is nearly unchanged. |
 | Motion | Anyone who asks their device to reduce motion now gets no animations anywhere (previously only the splash). |
 | Loading screens | Wishlist, profile and the sell form now show placeholders while loading. |
-| Speed | The splash background is a 174 KB WebP (was a 1.96 MB PNG). The old PNG is no longer used and can be deleted from `public/images/`. |
+| Speed | The (now retired) splash background was a 174 KB WebP (was a 1.96 MB PNG). The old PNG is no longer used and can be deleted from `public/images/`. |
 | Branding | The site, README and package name now say "Campus Market" (the old text said "IIPS Market"). |
 
 ## Deploy

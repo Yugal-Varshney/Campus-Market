@@ -11,7 +11,7 @@ t('marketplace is open when REQUIRE_LOGIN_TO_BROWSE=false', !isProtectedPath('/m
 t('login and register pages are public', !isProtectedPath('/login', true) && !isProtectedPath('/register', true));
 t('password reset page is public (it checks the recovery session itself)', !isProtectedPath('/reset-password', true));
 t('auth callback is public', !isProtectedPath('/auth/callback', true));
-t('home splash is public', !isProtectedPath('/', true));
+t('home page is public', !isProtectedPath('/', true));
 t('look-alike paths are not caught by accident', !isProtectedPath('/selling', false) && !isProtectedPath('/administrator', false) && !isProtectedPath('/profile-photos', false));
 t('login and register are the two sign-in pages', AUTH_PAGES.join() === '/login,/register');
 

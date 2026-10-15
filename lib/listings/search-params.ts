@@ -32,3 +32,11 @@ export function parseListingQuery(sp: Raw, validCategories?: string[]): ListingQ
 }
 
 export const PAGE = PAGE_SIZE;
+
+/** Builds a /marketplace URL from URL params, skipping empty ones. Shared by pagination, filter pills and category chips. */
+export function marketplaceHref(params: Record<string, string | undefined>): string {
+  const p = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => v && p.set(k, v));
+  const qs = p.toString();
+  return qs ? `/marketplace?${qs}` : '/marketplace';
+}
