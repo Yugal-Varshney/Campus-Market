@@ -18,7 +18,7 @@ export default async function Navbar() {
     <nav className="navbar" aria-label="Main">
       <div className="navbar-inner">
         <div className="navbar-left">
-          <Link href="/marketplace" className="brand font-display">Campus Market</Link>
+          <Link href="/" className="brand font-display">Campus Market</Link>
           {user && (
             <form className="search-form" action="/marketplace" role="search">
               <div className="search-wrap">
