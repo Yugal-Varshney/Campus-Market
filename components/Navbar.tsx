@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { getActingRole } from '@/lib/staff/auth';
 import { getWishlistIds } from '@/lib/listings/queries';
 import { getAlertCount } from '@/lib/saved-searches/queries';
+import { getUnreadCount } from '@/lib/messages/queries';
+import MessagesLink from './messages/MessagesLink';
 import UserMenu from './UserMenu';
 
 const HeartIcon = () => (
@@ -19,9 +21,9 @@ const BellIcon = () => (
 
 export default async function Navbar() {
   const user = await getCurrentUser();
-  const [wishlistCount, role, alertCount] = user
-    ? await Promise.all([getWishlistIds(user.id).then((ids) => ids.length), getActingRole(), getAlertCount(user.id)])
-    : [0, 'student' as const, 0];
+  const [wishlistCount, role, alertCount, unreadCount] = user
+    ? await Promise.all([getWishlistIds(user.id).then((ids) => ids.length), getActingRole(), getAlertCount(user.id), getUnreadCount()])
+    : [0, 'student' as const, 0, 0];
 
   return (
     <nav className="navbar" aria-label="Main">
@@ -47,6 +49,7 @@ export default async function Navbar() {
                 {alertCount > 0 && <span className="badge-count">{alertCount > 9 ? '9+' : alertCount}</span>}
                 <span className="icon-link-label"><BellIcon /><span>Alerts</span></span>
               </Link>
+              <MessagesLink userId={user.id} initial={unreadCount} />
               <Link href="/sell" className="btn btn-dark nav-sell" aria-label="Sell an item">Sell<span className="nav-sell-extra" aria-hidden="true"> an Item</span></Link>
               <UserMenu email={user.email} name={user.displayName} role={role} />
             </>

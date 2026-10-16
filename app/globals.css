@@ -359,6 +359,7 @@ main {
   transition: background-color 0.15s ease;
 }
 .chat-dock:hover { background: var(--primary); }
+.chat-dock .badge-count { right: -0.4rem; top: -0.4rem; height: 1.25rem; min-width: 1.25rem; font-size: 11px; border: 2px solid var(--background); box-sizing: content-box; }
 .chat-dock.visible { display: flex; }
 
 @media (max-width: 639px) {
@@ -976,6 +977,10 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
   display: block;
 }
 .conversation-item:hover { background: var(--secondary); }
+.conversation-item { position: relative; }
+.conversation-item.unread .title { font-weight: 700; padding-right: 1.25rem; }
+.conversation-item.unread .preview { font-weight: 600; color: var(--foreground); }
+.unread-dot { position: absolute; top: 1rem; right: 1rem; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--primary); }
 .conversation-item.active { background: var(--secondary); border-left: 4px solid var(--primary); }
 .conversation-item .title { font-size: 0.875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .conversation-item .subtitle { margin-top: 0.15rem; font-size: 0.75rem; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -135,6 +135,12 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      conversation_reads: {
+        Row: { conversation_id: number; user_id: string; last_read_at: string };
+        Insert: never; // written only by the mark_conversation_read RPC
+        Update: never;
+        Relationships: [];
+      };
       saved_searches: {
         Row: { id: number; user_id: string; query: string; label: string; notify: boolean; last_checked_at: string; created_at: string };
         Insert: { user_id?: string; query: string; label: string; notify?: boolean };
@@ -228,6 +234,8 @@ export type Database = {
       respond_contact_request: { Args: { p_conversation_id: number; p_approve: boolean }; Returns: string };
       revoke_contact_share: { Args: { p_conversation_id: number }; Returns: undefined };
       admin_usage_summary: { Args: { p_days?: number }; Returns: Json };
+      get_unread_count: { Args: Record<PropertyKey, never>; Returns: number };
+      mark_conversation_read: { Args: { p_conversation_id: number }; Returns: undefined };
       get_trending_items: { Args: { p_days?: number; p_limit?: number }; Returns: { item_id: number; score: number }[] };
       get_popular_searches: { Args: { p_days?: number; p_min_users?: number; p_limit?: number }; Returns: { search_query: string; searchers: number }[] };
     };

@@ -61,6 +61,8 @@ export interface Conversation {
   lastMessage?: string | null;
   lastMessageAt?: string | null;
   lastSenderId?: string | null;
+  /** When the signed-in person last opened this chat (null if never recorded). Used for the unread dot. */
+  lastReadAt?: string | null;
 }
 
 export interface Message {

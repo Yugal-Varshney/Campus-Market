@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import type { Conversation, Message } from '@/types';
 
@@ -26,6 +27,16 @@ export async function getConversations(): Promise<Conversation[]> {
     }
   }
 
+  // When I last opened each chat (RLS: only my own rows). A chat with no row counts from when it was created.
+  const readAt = new Map<number, string>();
+  if (rows.length) {
+    const { data: reads } = await supabase
+      .from('conversation_reads')
+      .select('conversation_id, last_read_at')
+      .in('conversation_id', rows.map((c) => c.id));
+    for (const r of reads ?? []) readAt.set(r.conversation_id, r.last_read_at);
+  }
+
   const list = rows.map((c) => {
     const item = c.items as unknown as { title: string; seller_name: string } | null;
     const l = last.get(c.id);
@@ -41,6 +52,7 @@ export async function getConversations(): Promise<Conversation[]> {
       lastMessage: l?.body ?? null,
       lastMessageAt: l?.createdAt ?? null,
       lastSenderId: l?.senderId ?? null,
+      lastReadAt: readAt.get(c.id) ?? null,
     };
   });
   return list.sort((a, b) => Date.parse(b.lastMessageAt ?? b.createdAt) - Date.parse(a.lastMessageAt ?? a.createdAt));
@@ -60,3 +72,14 @@ export async function getMessages(conversationId: number): Promise<Message[]> {
     id: m.id, conversationId: m.conversation_id, senderId: m.sender_id, body: m.body, createdAt: m.created_at,
   }));
 }
+
+/** Unread messages from other people across all of the signed-in student's chats (capped at 100). Never throws. One call per request. */
+export const getUnreadCount = cache(async (): Promise<number> => {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc('get_unread_count');
+    return !error && typeof data === 'number' ? data : 0;
+  } catch {
+    return 0;
+  }
+});
