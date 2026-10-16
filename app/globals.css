@@ -1294,3 +1294,41 @@ button.chip:disabled { opacity: 0.5; cursor: default; }
 .wanted-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-bottom: 1.25rem; }
 .wanted-label { margin: 0; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); }
 .wanted-row .hero-chips { margin: 0; }
+
+/* ---------- Phase 5: validation fixes ---------- */
+/* Contrast: primary-coloured text on the pale primary tint was 3.96:1 (needs 4.5:1). Dark text keeps the primary border and hover. */
+.filter-pill { color: var(--foreground); }
+.filter-pill:hover { color: var(--primary-foreground); }
+
+/* Small print: 10px was too small to read comfortably on a phone. Raised to 12px for everything except the numbers inside round badges. */
+.user-dropdown-email, .item-category-label, .item-price-unit, .stat-label, .detail-posted, .field-label, .field-hint, .photo-drop .sub,
+.photo-preview-caption, .etiquette-box .eyebrow, .conversation-list-header, .conversation-item .time, .chat-bubble p.time, .contact-note,
+.conv-tag, .field-count, .quick-messages-label, .contact-copied, .share-note, .wanted-label { font-size: 0.75rem; }
+
+/* Keyboard: the sort menu lost its focus ring when its outline was removed. */
+.sort-select:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+main:focus { outline: none; } /* the skip link moves focus here; it is not a control */
+
+/* Touch: tappable extras reach 40px on touch screens (the main buttons already do). */
+@media (pointer: coarse) {
+  .btn-sm, .chip, .filter-pill, .filters-clear, .checkbox-row { min-height: 2.5rem; }
+  .btn-sm, .chip, .filter-pill { display: inline-flex; align-items: center; justify-content: center; }
+  .checkbox-row { display: flex; align-items: center; }
+}
+
+/* Connection lost */
+.offline-banner { padding: 0.5rem 1rem; background: var(--foreground); color: var(--background); text-align: center; font-size: 0.875rem; }
+.offline-banner[hidden] { display: none; }
+
+/* Admin usage screen */
+.usage-range { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0 1.5rem; }
+.usage-heading { margin: 1.5rem 0 0.75rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); }
+.usage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.75rem; }
+.usage-stat { padding: 1rem; border: 1px solid var(--border); background: var(--card); }
+.usage-stat .stat-value { margin: 0.25rem 0; font-family: var(--font-display); font-size: 2.25rem; line-height: 1; }
+.usage-delta, .usage-note { margin: 0; font-size: 0.8rem; color: var(--muted-foreground); }
+.usage-note { margin-top: 0.75rem; }
+.usage-table-wrap { overflow-x: auto; }
+.usage-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.usage-table th, .usage-table td { padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border); text-align: right; }
+.usage-table th[scope="row"], .usage-table thead th:first-child { text-align: left; font-weight: 500; }

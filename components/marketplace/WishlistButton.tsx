@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { toggleWishlist } from '@/lib/listings/actions';
+import { safely } from '@/lib/safe-action';
 
 export default function WishlistButton({ itemId, initial, className = 'wishlist-btn' }: { itemId: number; initial: boolean; className?: string }) {
   const [saved, setSaved] = useState(initial);
@@ -11,7 +12,7 @@ export default function WishlistButton({ itemId, initial, className = 'wishlist-
     const next = !saved;
     setSaved(next); // optimistic
     start(async () => {
-      const res = await toggleWishlist(itemId, next);
+      const res = await safely(() => toggleWishlist(itemId, next));
       if (res.error) setSaved(!next);
     });
   };

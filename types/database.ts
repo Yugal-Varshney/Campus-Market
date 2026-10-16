@@ -227,6 +227,7 @@ export type Database = {
       request_contact: { Args: { p_conversation_id: number }; Returns: string };
       respond_contact_request: { Args: { p_conversation_id: number; p_approve: boolean }; Returns: string };
       revoke_contact_share: { Args: { p_conversation_id: number }; Returns: undefined };
+      admin_usage_summary: { Args: { p_days?: number }; Returns: Json };
       get_trending_items: { Args: { p_days?: number; p_limit?: number }; Returns: { item_id: number; score: number }[] };
       get_popular_searches: { Args: { p_days?: number; p_min_users?: number; p_limit?: number }; Returns: { search_query: string; searchers: number }[] };
     };

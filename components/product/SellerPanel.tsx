@@ -8,6 +8,7 @@ import { sendMessage, startConversation } from '@/lib/messages/actions';
 import type { ContactShareStatus, Listing, SellerContact } from '@/types';
 import WishlistButton from '@/components/marketplace/WishlistButton';
 import ContactCard from '@/components/messages/ContactCard';
+import { safely } from '@/lib/safe-action';
 
 const QUICK_MESSAGES = ['Is this still available?', 'Can we meet on campus?', 'Is the price negotiable?'];
 
@@ -25,7 +26,7 @@ export default function SellerPanel({ item, isOwner, wishlisted, hasConversation
     setError('');
     setNotice('');
     start(async () => {
-      const res = await fn();
+      const res = await safely(fn);
       if (res && res.error) setError(res.error);
       else { setNotice(okMessage ?? res?.success ?? ''); router.refresh(); }
     });
@@ -35,9 +36,9 @@ export default function SellerPanel({ item, isOwner, wishlisted, hasConversation
   const quickMessage = (text: string) => {
     setError('');
     start(async () => {
-      const r = await startConversation(item.id);
+      const r = await safely(() => startConversation(item.id));
       if (!r.conversationId) { setError(r.error ?? 'Could not start a chat.'); return; }
-      await sendMessage(r.conversationId, text); // if this fails the chat still opens and the buyer can type it there
+      await safely(() => sendMessage(r.conversationId as number, text)); // if this fails the chat still opens and the buyer can type it there
       router.push(`/messages?c=${r.conversationId}`);
     });
   };
@@ -96,13 +97,13 @@ export default function SellerPanel({ item, isOwner, wishlisted, hasConversation
       <div className="detail-actions">
         {!done && item.sellerId && (
           <button type="button" className="btn btn-primary" disabled={pending}
-            onClick={() => { setError(''); start(async () => { const r = await startConversation(item.id); if (r.conversationId) router.push(`/messages?c=${r.conversationId}`); else setError(r.error ?? 'Could not start a chat.'); }); }}>
+            onClick={() => { setError(''); start(async () => { const r = await safely(() => startConversation(item.id)); if (r.conversationId) router.push(`/messages?c=${r.conversationId}`); else setError(r.error ?? 'Could not start a chat.'); }); }}>
             {share ? 'OPEN CHAT' : 'CHAT WITH SELLER'}
           </button>
         )}
         {!done && share?.status === 'approved' && !contact && (
           <button type="button" className="btn btn-outline" disabled={pending}
-            onClick={() => { setError(''); start(async () => { const r = await revealContact(item.id); if (r.contact) setContact(r.contact); else setError(r.error ?? 'Contact details are unavailable right now.'); }); }}>
+            onClick={() => { setError(''); start(async () => { const r = await safely(() => revealContact(item.id)); if (r.contact) setContact(r.contact); else setError(r.error ?? 'Contact details are unavailable right now.'); }); }}>
             VIEW CONTACT DETAILS
           </button>
         )}

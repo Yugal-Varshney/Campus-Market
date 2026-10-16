@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { saveSearch } from '@/lib/saved-searches/actions';
+import { safely } from '@/lib/safe-action';
 
 /** "Save this search" for the current filters. Signed-out visitors are sent to sign in and brought back here. */
 export default function SaveSearchButton({ rawQuery, saved, signedIn, loginHref }: { rawQuery: string; saved: boolean; signedIn: boolean; loginHref: string }) {
@@ -18,7 +19,7 @@ export default function SaveSearchButton({ rawQuery, saved, signedIn, loginHref 
   const save = () => {
     setError('');
     start(async () => {
-      const r = await saveSearch(rawQuery);
+      const r = await safely(() => saveSearch(rawQuery));
       if (r.error) setError(r.error);
       else { setMessage(r.success ?? 'Search saved.'); router.refresh(); }
     });
