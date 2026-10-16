@@ -100,6 +100,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
           </div>
         ) : (
           <>
+            <h2 className="sr-only">Listings</h2>
             <ProductGrid items={result.items} wishlistIds={wishlistIds} categoryNames={categoryNames} />
             <Pagination page={result.page} total={result.total} pageSize={result.pageSize} params={keep} />
           </>

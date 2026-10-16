@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { deleteSavedSearch, markSavedSearchSeen, setSavedSearchAlerts } from '@/lib/saved-searches/actions';
+import { safely } from '@/lib/safe-action';
 
 export default function SavedSearchRow({ id, label, href, notify, newCount }: { id: number; label: string; href: string; notify: boolean; newCount: number }) {
   const router = useRouter();
@@ -13,7 +14,7 @@ export default function SavedSearchRow({ id, label, href, notify, newCount }: { 
   const run = (fn: () => Promise<{ error?: string }>) => {
     setError('');
     start(async () => {
-      const r = await fn();
+      const r = await safely(fn);
       if (r.error) setError(r.error); else router.refresh();
     });
   };

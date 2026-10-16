@@ -5,6 +5,7 @@ import { answerContactRequest, getShareStatus, requestContact, stopSharingContac
 import { revealContact } from '@/lib/listings/actions';
 import ContactCard from './ContactCard';
 import type { ContactShareStatus, SellerContact } from '@/types';
+import { safely } from '@/lib/safe-action';
 
 interface Props {
   conversationId: number;
@@ -39,7 +40,7 @@ export default function ContactPanel({ conversationId, itemId, isBuyer, otherPar
   const act = (fn: () => Promise<{ status?: ContactShareStatus | null; error?: string }>) => {
     setError('');
     start(async () => {
-      const res = await fn();
+      const res = await safely(fn);
       if (res.error) setError(res.error);
       else setStatus(res.status ?? null);
     });
@@ -48,7 +49,7 @@ export default function ContactPanel({ conversationId, itemId, isBuyer, otherPar
   const reveal = () => {
     setError('');
     start(async () => {
-      const r = await revealContact(itemId);
+      const r = await safely(() => revealContact(itemId));
       if (r.contact) setContact(r.contact);
       else setError(r.error ?? 'Contact details are unavailable right now.');
     });

@@ -33,6 +33,7 @@ export default async function WishlistPage() {
           <Link href="/marketplace" className="btn btn-dark">Browse the Board</Link>
         </div>
       ) : (
+        <h2 className="sr-only">Saved listings</h2>
         <ProductGrid items={items.map((w) => w.listing)} wishlistIds={items.map((w) => w.itemId)} cols={4} categoryNames={categoryNames} />
       )}
     </div>

@@ -11,14 +11,17 @@ async function scan(page: Page, label: string) {
 
 test.describe('accessibility scan', () => {
   test('signed-out pages', async ({ page }) => {
-    for (const path of ['/login', '/register']) { await page.goto(path); await scan(page, path); }
+    for (const path of ['/', '/login', '/register']) { await page.goto(path); await scan(page, path); }
   });
 
   test('signed-in pages', async ({ page }) => {
     test.skip(!have('A'), 'E2E_STUDENT_A_* not set');
     await login(page, 'A');
-    for (const path of ['/marketplace', '/sell', '/wishlist', '/messages', '/profile']) { await page.goto(path); await scan(page, path); }
+    for (const path of ['/marketplace', '/saved-searches', '/sell', '/wishlist', '/messages', '/profile']) { await page.goto(path); await scan(page, path); }
+    await page.goto(`/marketplace?q=${encodeURIComponent(uniq('nothing-matches'))}`);
+    await scan(page, 'a search with no matches (empty state and filter pills)');
     const id = await createListing(page, { title: uniq('a11y'), price: 40 });
+    await scan(page, 'a listing page right after posting (confirmation banner)');
     await page.goto(`/marketplace/${id}`);
     await scan(page, 'a listing page');
     await deleteListing(page, id);
@@ -27,6 +30,6 @@ test.describe('accessibility scan', () => {
   test('staff pages', async ({ page }) => {
     test.skip(!have('ADMIN'), 'E2E_ADMIN_* not set');
     await login(page, 'ADMIN');
-    for (const path of ['/moderator', '/admin', '/admin/categories', '/admin/audit']) { await page.goto(path); await scan(page, path); }
+    for (const path of ['/moderator', '/admin', '/admin/usage', '/admin/categories', '/admin/audit']) { await page.goto(path); await scan(page, path); }
   });
 });

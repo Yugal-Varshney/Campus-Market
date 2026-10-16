@@ -9,6 +9,8 @@ import { validateReport } from '../lib/validation/report';
 import { cleanReason, suspensionUntil, isUuid, isId, slugify, validateCategory } from '../lib/validation/staff';
 import { categoryLabel } from '../lib/constants';
 import { buildAccountNotice } from '../lib/account/notice';
+import { OFFLINE_MESSAGE, safely } from '../lib/safe-action';
+import { formatDelta, percent } from '../lib/staff/usage-format';
 import { describeSearch, hasSearchCriteria, searchParamsObject, serializeSearch } from '../lib/saved-searches/query';
 
 const ok = { title: 'Chem book', description: '', category: 'books', listingType: 'sell', price: 250, condition: 'good', phone: '+91 98765 43210' };
@@ -191,5 +193,21 @@ t('valid listing has no field error', validateListing(ok).field === undefined);
   t('known saved-search limit message is shown to students', knownDbError('SAVED_SEARCH: you can keep up to 10 saved searches. Delete one to add another.') === 'You can keep up to 10 saved searches. Delete one to add another.');
 }
 
-if (failed) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
-console.log('\nAll tests passed');
+// ---- Phase 5: failed requests and usage numbers ----
+t('delta: growth', formatDelta(15, 10) === '+50%');
+t('delta: drop', formatDelta(9, 10) === '−10%');
+t('delta: nothing before', formatDelta(4, 0) === 'new' && formatDelta(0, 0) === 'no change');
+t('percent: shows a dash instead of dividing by zero', percent(3, 0) === null && percent(1, 4) === 25);
+
+(async () => {
+  const ok = await safely(async () => ({ success: 'saved' }));
+  t('safely passes a normal result through', ok.success === 'saved');
+  const offline = await safely(async (): Promise<{ error?: string }> => { throw new TypeError('Failed to fetch'); });
+  t('safely turns a network failure into a friendly error', offline.error === OFFLINE_MESSAGE);
+  let redirected = false;
+  try { await safely(async () => { throw Object.assign(new Error('NEXT_REDIRECT'), { digest: 'NEXT_REDIRECT;push;/marketplace;307;' }); }); } catch { redirected = true; }
+  t('safely lets redirects through untouched', redirected);
+
+  if (failed) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
+  console.log('\nAll tests passed');
+})();

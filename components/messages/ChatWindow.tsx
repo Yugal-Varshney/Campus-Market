@@ -8,6 +8,7 @@ import type { ContactShareStatus, Message } from '@/types';
 import ReportButton from '@/components/report/ReportButton';
 import ContactPanel from './ContactPanel';
 import MessageBubble from './MessageBubble';
+import { safely } from '@/lib/safe-action';
 
 const BUYER_STARTERS = ['Is this still available?', 'Where on campus can we meet?', 'Is the price negotiable?'];
 const SELLER_STARTERS = ['Yes, it is still available.', 'Where would you like to meet?', 'Can you come by this evening?'];
@@ -52,7 +53,7 @@ export default function ChatWindow({ conversationId, userId, title, otherParty, 
     if (!body) return;
     setError('');
     start(async () => {
-      const res = await sendMessage(conversationId, body);
+      const res = await safely(() => sendMessage(conversationId, body));
       if (res.message) { add(res.message); setDraft(''); } else setError(res.error ?? 'Message could not be sent.');
     });
   };
