@@ -12,6 +12,9 @@ import { removeImage, storagePathFromUrl, uploadListingImage } from './storage';
 import { getSellerContact } from './queries';
 import type { ActionState, ListingStatus, SellerContact } from '@/types';
 
+/** Keeps the message and, when known, which input it belongs to, so the form can mark that input. */
+const fail = (error?: string, field?: string): ActionState => ({ error, fieldErrors: field && error ? { [field]: error } : undefined });
+
 const str = (fd: FormData, k: string) => (typeof fd.get(k) === 'string' ? (fd.get(k) as string) : '');
 
 function readListing(fd: FormData, categories: string[]) {
@@ -37,10 +40,10 @@ export async function createListing(_: ActionState, fd: FormData): Promise<Actio
   if (!user) return { error: 'You need to sign in to continue.' };
 
   const categories = await getCategories();
-  const { value, error } = readListing(fd, categories.map((c) => c.value));
-  if (!value) return { error };
+  const { value, error, field } = readListing(fd, categories.map((c) => c.value));
+  if (!value) return fail(error, field);
   const file = photo(fd);
-  if (!file) return { error: 'Add a photo — real photos get far more replies.' };
+  if (!file) return fail('Add a photo — real photos get far more replies.', 'photo');
 
   const verdict = await moderateListing(value);
   if (verdict.decision === 'reject') return { error: 'This listing cannot be posted.' };
@@ -81,7 +84,7 @@ export async function createListing(_: ActionState, fd: FormData): Promise<Actio
   }
 
   revalidatePath('/marketplace');
-  redirect(`/marketplace/${item.id}`);
+  redirect(`/marketplace/${item.id}?posted=1`);
 }
 
 export async function updateListing(id: number, _: ActionState, fd: FormData): Promise<ActionState> {
@@ -93,8 +96,8 @@ export async function updateListing(id: number, _: ActionState, fd: FormData): P
   if (current.status !== 'active') return { error: 'Mark the item available again before editing it.' };
   // The listing's own category stays valid even if an admin has since disabled it.
   const categories = await getCategories();
-  const { value, error } = readListing(fd, [...categories.map((c) => c.value), current.category]);
-  if (!value) return { error };
+  const { value, error, field } = readListing(fd, [...categories.map((c) => c.value), current.category]);
+  if (!value) return fail(error, field);
 
   let imageUrl: string | undefined;
   let newPath: string | undefined;
@@ -145,7 +148,7 @@ export async function updateListing(id: number, _: ActionState, fd: FormData): P
   }
 
   revalidatePath('/marketplace');
-  redirect(`/marketplace/${id}`);
+  redirect(`/marketplace/${id}?updated=1`);
 }
 
 /** Status changes are enforced by RLS + CHECK constraints; this just reports the outcome. */

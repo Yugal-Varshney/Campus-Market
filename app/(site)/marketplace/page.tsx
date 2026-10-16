@@ -12,6 +12,9 @@ import ProductGrid from '@/components/marketplace/ProductGrid';
 import Pagination from '@/components/marketplace/Pagination';
 import CategoryChips from '@/components/marketplace/CategoryChips';
 import ActiveFilters from '@/components/marketplace/ActiveFilters';
+import SaveSearchButton from '@/components/saved-searches/SaveSearchButton';
+import { hasSearchCriteria, serializeSearch } from '@/lib/saved-searches/query';
+import { isSearchSaved } from '@/lib/saved-searches/queries';
 
 export const metadata: Metadata = { title: 'Marketplace' };
 
@@ -30,6 +33,8 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
     result = null;
   }
   const wishlistIds = user ? await getWishlistIds(user.id) : [];
+  const savable = hasSearchCriteria(query);
+  const saved = user && savable ? await isSearchSaved(serializeSearch(query)) : false;
   const flat = (k: string) => (Array.isArray(sp[k]) ? (sp[k] as string[])[0] : (sp[k] as string | undefined));
   const keep = { q: flat('q'), category: flat('category'), minPrice: flat('minPrice'), maxPrice: flat('maxPrice'), sort: flat('sort'), available: flat('available') };
 
@@ -54,6 +59,9 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
 
         <CategoryChips categories={categories} active={query.categories} params={{ ...keep, category: undefined }} />
         <ActiveFilters query={query} categoryNames={categoryNames} />
+        {savable && (
+          <SaveSearchButton rawQuery={serializeSearch(query)} saved={saved} signedIn={Boolean(user)} loginHref={`/login?next=${encodeURIComponent(marketplaceHref({ ...keep, page: undefined }))}`} />
+        )}
 
         <header className="listings-header">
           <div className="listings-header-left">

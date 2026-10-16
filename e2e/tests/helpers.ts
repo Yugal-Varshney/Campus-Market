@@ -75,7 +75,7 @@ export async function createListing(page: Page, l: NewListing): Promise<number> 
   await page.locator('#sell-photo').setInputFiles({ name: 'e2e.png', mimeType: 'image/png', buffer: makePng() });
   await expect(page.getByRole('button', { name: 'Change photo' })).toBeVisible(); // the preview appeared, so the photo was accepted
   await page.getByRole('button', { name: 'POST LISTING' }).click();
-  await expect(page).toHaveURL(/\/marketplace\/\d+$/);
+  await expect(page).toHaveURL(/\/marketplace\/\d+(\?.*)?$/);
   return Number(new URL(page.url()).pathname.split('/').pop());
 }
 

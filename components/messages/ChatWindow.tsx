@@ -9,6 +9,9 @@ import ReportButton from '@/components/report/ReportButton';
 import ContactPanel from './ContactPanel';
 import MessageBubble from './MessageBubble';
 
+const BUYER_STARTERS = ['Is this still available?', 'Where on campus can we meet?', 'Is the price negotiable?'];
+const SELLER_STARTERS = ['Yes, it is still available.', 'Where would you like to meet?', 'Can you come by this evening?'];
+
 interface Props {
   conversationId: number; userId: string; title: string; otherParty: string; itemId: number; initialMessages: Message[];
   isBuyer: boolean; otherUserId: string; initialShare: ContactShareStatus | null;
@@ -23,6 +26,7 @@ export default function ChatWindow({ conversationId, userId, title, otherParty, 
   const [tick, setTick] = useState(0);
   const [pending, start] = useTransition();
   const threadRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const add = (m: Message) => setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
 
@@ -66,13 +70,22 @@ export default function ChatWindow({ conversationId, userId, title, otherParty, 
       <div className="chat-report-row"><ReportButton userId={otherUserId} label="Report this user" /></div>
       <div className="chat-thread" ref={threadRef} role="log" aria-live="polite" aria-label="Messages">
         {messages.length === 0
-          ? <p className="chat-empty">Say hi — ask about pickup, condition, or a better price.</p>
+          ? (
+            <div className="chat-empty">
+              <p>Say hi — ask about pickup, condition, or a better price.</p>
+              <div className="quick-messages-row" role="group" aria-label="Suggested messages">
+                {(isBuyer ? BUYER_STARTERS : SELLER_STARTERS).map((q) => (
+                  <button key={q} type="button" className="chip" onClick={() => { setDraft(q); inputRef.current?.focus(); }}>{q}</button>
+                ))}
+              </div>
+            </div>
+          )
           : messages.map((m) => <MessageBubble key={m.id} message={m} mine={m.senderId === userId} />)}
       </div>
       {!live && <p className="field-hint" role="status" style={{ padding: '0 1rem' }}>Live updates are unavailable — refresh to see new messages.</p>}
       {error && <p className="error-box" role="alert">{error}</p>}
       <form className="chat-input-row" onSubmit={submit}>
-        <input type="text" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Ask about pickup, condition, bargaining…" maxLength={1000} aria-label="Message" />
+        <input ref={inputRef} type="text" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Ask about pickup, condition, bargaining…" maxLength={1000} aria-label="Message" />
         <button type="submit" className="btn btn-dark" disabled={pending}>Send</button>
       </form>
     </div>

@@ -92,3 +92,39 @@ export async function countConversations(itemId: number): Promise<number> {
     .eq('item_id', itemId);
   return count ?? 0;
 }
+
+/**
+ * How many available listings that match this search were posted after `since` (head-only count, no rows).
+ * Used for saved-search alerts. The student's own listings are left out so posting something never alerts you about yourself.
+ * The filters mirror getListings(); keep the two in step.
+ */
+export async function countNewListings(q: ListingQuery, since: string, excludeSellerId?: string): Promise<number> {
+  const supabase = await createClient();
+  let query = supabase.from('items').select('id', { count: 'exact', head: true }).eq('status', 'active').gt('created_at', since);
+  if (excludeSellerId) query = query.neq('seller_id', excludeSellerId);
+  if (q.categories.length) query = query.in('category', q.categories);
+  if (q.minPrice !== null) query = query.gte('price', q.minPrice);
+  if (q.maxPrice !== null) query = query.lte('price', q.maxPrice);
+  const term = cleanSearch(q.q);
+  if (term) {
+    const like = `%${term}%`;
+    query = query.or(`title.ilike.${like},description.ilike.${like},seller_name.ilike.${like}`);
+  }
+  const { count, error } = await query;
+  return error ? 0 : count ?? 0;
+}
+
+/** Listings students are saving and messaging about right now (get_trending_items, migration 012). Empty on any problem. */
+export async function getTrendingListings(limit = 4): Promise<Listing[]> {
+  try {
+    const supabase = await createClient();
+    const { data: ranked, error } = await supabase.rpc('get_trending_items', { p_days: 14, p_limit: limit });
+    if (error || !ranked?.length) return [];
+    const ids = ranked.map((r) => r.item_id);
+    const { data } = await supabase.from('items').select(ITEM_COLUMNS).in('id', ids).eq('status', 'active');
+    const byId = new Map((data ?? []).map((row) => [row.id, toListing(row)]));
+    return ids.map((id) => byId.get(id)).filter((l): l is Listing => Boolean(l));
+  } catch {
+    return [];
+  }
+}

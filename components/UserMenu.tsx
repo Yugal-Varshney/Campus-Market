@@ -29,6 +29,7 @@ export default function UserMenu({ email, name, role = 'student' }: { email: str
         <p className="user-dropdown-email">{email}</p>
         <Link href="/profile" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>My Profile</Link>
         <Link href="/wishlist" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>My Wishlist</Link>
+        <Link href="/saved-searches" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>Saved Searches</Link>
         <Link href="/messages" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>Messages</Link>
         {role !== 'student' && <Link href="/moderator" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>Moderation</Link>}
         {role === 'admin' && <Link href="/admin" className="user-dropdown-item" role="menuitem" onClick={() => setOpen(false)}>Admin</Link>}

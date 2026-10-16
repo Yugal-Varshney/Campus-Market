@@ -1240,3 +1240,57 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1.5rem; }
 .empty-actions .btn { margin-top: 0; }
 @media (max-width: 639px) { .empty-state { padding: 2rem 1rem; } }
+
+/* ---------- Phase 3: selling and messaging ---------- */
+.field-input[aria-invalid="true"], .photo-drop[aria-invalid="true"] { border-color: var(--destructive); }
+.field-error { margin-top: 0.25rem; font-size: 0.8rem; color: var(--destructive); }
+.field-meta { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.field-count { margin-left: auto; margin-top: 0.25rem; font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); }
+
+.photo-preview-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.5rem; }
+.listing-preview { margin-top: 1.5rem; padding: 1rem; border: 1px dashed var(--border); background: var(--muted); }
+.listing-preview .item-card { max-width: 18rem; margin-top: 0.75rem; animation: none; pointer-events: none; }
+.listing-preview .item-media img { width: 100%; height: 100%; object-fit: cover; }
+
+.quick-messages { margin-top: 1.25rem; }
+.quick-messages-label { margin-bottom: 0.5rem; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); }
+.quick-messages-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.chat-empty .quick-messages-row { justify-content: center; margin-top: 1rem; }
+button.chip { cursor: pointer; font: inherit; }
+button.chip:disabled { opacity: 0.5; cursor: default; }
+
+.contact-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+.contact-actions .btn { margin-top: 0; }
+.contact-copied { min-height: 1.1rem; margin-top: 0.5rem; font-family: var(--font-mono); font-size: 10px; color: var(--primary); }
+
+.success-banner { margin-bottom: 1.25rem; }
+.success-banner p { margin-top: 0.25rem; }
+.success-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+.success-actions .btn { margin-top: 0; }
+.owner-notice { margin-top: 0.75rem; }
+
+/* ---------- Phase 4: repeat visits ---------- */
+.save-search { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin: 0 0 1.25rem; }
+.save-search .btn { margin-top: 0; }
+.save-search-hint { margin: 0; font-size: 0.8rem; color: var(--muted-foreground); }
+.save-search-link { display: inline-block; margin: 0 0 1.25rem; font-size: 0.85rem; text-decoration: underline; text-underline-offset: 4px; }
+.save-search-link:hover, .save-search-link.is-saved { color: var(--primary); }
+
+.saved-intro { margin: 0 0 1.5rem; font-size: 0.875rem; color: var(--muted-foreground); }
+.saved-list { display: flex; flex-direction: column; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
+.saved-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; padding: 1rem; border: 1px solid var(--border); background: var(--card); }
+.saved-row .error-box { flex-basis: 100%; }
+.saved-row-label { margin: 0; font-weight: 600; }
+.saved-row-new, .saved-row-quiet { margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--muted-foreground); }
+.new-badge { display: inline-block; padding: 0 0.4rem; background: var(--primary); color: var(--primary-foreground); font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.06em; }
+.saved-row-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.saved-row-actions .btn { margin-top: 0; }
+
+.share-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 1rem; }
+.share-row .btn { margin-top: 0; }
+.share-note { font-family: var(--font-mono); font-size: 10px; color: var(--primary); }
+
+.home-trending { padding-bottom: 0.5rem; }
+.wanted-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-bottom: 1.25rem; }
+.wanted-label { margin: 0; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); }
+.wanted-row .hero-chips { margin: 0; }

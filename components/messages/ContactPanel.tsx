@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { answerContactRequest, getShareStatus, requestContact, stopSharingContact } from '@/lib/contact/actions';
 import { revealContact } from '@/lib/listings/actions';
+import ContactCard from './ContactCard';
 import type { ContactShareStatus, SellerContact } from '@/types';
 
 interface Props {
@@ -57,7 +58,7 @@ export default function ContactPanel({ conversationId, itemId, isBuyer, otherPar
   if (!isBuyer && status !== 'requested' && status !== 'approved') return null;
 
   return (
-    <div className="contact-bar" role="region" aria-label="Contact details">
+    <div className="contact-bar" role="region" aria-label="Contact details" aria-live="polite">
       {isBuyer && (status === null || status === 'declined' || status === 'revoked') && (
         <>
           <p>
@@ -79,14 +80,7 @@ export default function ContactPanel({ conversationId, itemId, isBuyer, otherPar
               <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={reveal}>VIEW CONTACT DETAILS</button>
             </div>
           )}
-          {contact && (
-            <div className="contact-card">
-              <p className="contact-line"><span>Name</span><strong>{contact.name}</strong></p>
-              {contact.email && <p className="contact-line"><span>Email</span><a href={`mailto:${contact.email}`}>{contact.email}</a></p>}
-              {contact.phone && <p className="contact-line"><span>Phone</span><a href={`tel:${contact.phone.replace(/[^\d+]/g, '')}`}>{contact.phone}</a></p>}
-              <p className="contact-note">Meet on campus and check the item before paying.</p>
-            </div>
-          )}
+          {contact && <ContactCard contact={contact} />}
         </>
       )}
       {!isBuyer && status === 'requested' && (
