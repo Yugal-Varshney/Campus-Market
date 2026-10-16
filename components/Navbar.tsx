@@ -43,11 +43,11 @@ export default async function Navbar() {
                 {wishlistCount > 0 && <span className="badge-count">{wishlistCount}</span>}
                 <span className="icon-link-label"><HeartIcon /><span>Wishlist</span></span>
               </Link>
-              <Link href="/saved-searches" className="icon-link" aria-label={alertCount > 0 ? `Alerts, ${alertCount} new` : 'Alerts and saved searches'}>
+              <Link href="/saved-searches" className="icon-link nav-alerts" aria-label={alertCount > 0 ? `Alerts, ${alertCount} new` : 'Alerts and saved searches'}>
                 {alertCount > 0 && <span className="badge-count">{alertCount > 9 ? '9+' : alertCount}</span>}
                 <span className="icon-link-label"><BellIcon /><span>Alerts</span></span>
               </Link>
-              <Link href="/sell" className="btn btn-dark">Sell an Item</Link>
+              <Link href="/sell" className="btn btn-dark nav-sell" aria-label="Sell an item">Sell<span className="nav-sell-extra" aria-hidden="true"> an Item</span></Link>
               <UserMenu email={user.email} name={user.displayName} role={role} />
             </>
           ) : (

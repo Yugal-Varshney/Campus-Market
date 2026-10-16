@@ -1332,3 +1332,22 @@ main:focus { outline: none; } /* the skip link moves focus here; it is not a con
 .usage-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
 .usage-table th, .usage-table td { padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border); text-align: right; }
 .usage-table th[scope="row"], .usage-table thead th:first-child { text-align: left; font-weight: 500; }
+
+/* ---------- Phase 5 follow-up: phone navbar and duplicate search ---------- */
+/* One search box per page: when the page has its own (homepage hero, marketplace), the navbar copy is hidden. */
+body:has(.hero-search, .mobile-search) .search-form { display: none; }
+
+/* Phones: the brand may shrink and truncate instead of running under the buttons, and the right-hand group tightens up. */
+.brand { min-width: 0; flex-shrink: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.navbar-left { flex: 1 1 auto; }
+.nav-sell-extra { display: none; }
+@media (max-width: 639px) {
+  .navbar-inner { gap: 0.5rem; }
+  .navbar-left { gap: 0; }
+  .brand { font-size: 1.45rem; }
+  .navbar-right { gap: 0.125rem; }
+  .navbar-right .icon-link { padding: 0.5rem 0.4rem; }
+  .navbar-right .nav-sell { padding: 0.45rem 0.8rem; font-size: 0.95rem; margin: 0 0.25rem; }
+}
+@media (max-width: 359px) { .nav-alerts { display: none; } } /* very narrow screens: Alerts stays reachable from the account menu */
+@media (min-width: 640px) { .nav-sell-extra { display: inline; } }
