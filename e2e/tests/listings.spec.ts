@@ -28,7 +28,7 @@ test.describe('listings: post, find, edit, rent, sell, delete', () => {
     await page.getByRole('link', { name: 'EDIT' }).click();
     await page.locator('#sell-price').fill('300');
     await page.getByRole('button', { name: 'SAVE CHANGES' }).click();
-    await expect(page).toHaveURL(new RegExp(`/marketplace/${saleId}$`));
+    await expect(page).toHaveURL(new RegExp(`/marketplace/${saleId}(\\?.*)?$`));
     await expect(page.getByText('₹300').first()).toBeVisible();
   });
 

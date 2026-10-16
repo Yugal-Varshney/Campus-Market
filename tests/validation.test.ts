@@ -9,6 +9,7 @@ import { validateReport } from '../lib/validation/report';
 import { cleanReason, suspensionUntil, isUuid, isId, slugify, validateCategory } from '../lib/validation/staff';
 import { categoryLabel } from '../lib/constants';
 import { buildAccountNotice } from '../lib/account/notice';
+import { describeSearch, hasSearchCriteria, searchParamsObject, serializeSearch } from '../lib/saved-searches/query';
 
 const ok = { title: 'Chem book', description: '', category: 'books', listingType: 'sell', price: 250, condition: 'good', phone: '+91 98765 43210' };
 let failed = 0;
@@ -166,6 +167,29 @@ t('category slug capitals are lower-cased like the database does', (() => { cons
 t('category slug with spaces rejected', 'error' in validateCategory({ name: 'Lab', slug: 'lab equipment', description: '' }, true));
 t('category description over 200 characters rejected', 'error' in validateCategory({ name: 'Lab', slug: 'lab', description: 'x'.repeat(201) }, true));
 t('slug not required when editing', 'value' in validateCategory({ name: 'Lab Gear', description: '' }, false));
+
+// ---- Phase 3: errors name the field they belong to, so the form can mark it ----
+t('title error names the title field', validateListing({ ...ok, title: 'ab' }).field === 'title');
+t('price error names the price field', validateListing({ ...ok, price: 0 }).field === 'price');
+t('phone error names the phone field', validateListing({ ...ok, phone: 'abc' }).field === 'phone');
+t('rental max error names its field', validateListing({ ...rent, rentMaxUnits: '0' }).field === 'rentMaxUnits');
+t('valid listing has no field error', validateListing(ok).field === undefined);
+
+// ---- Phase 4: saved searches ----
+{
+  const cats = ['books', 'electronics'];
+  const q1 = parseListingQuery({ q: ' calculator ', category: 'electronics,books', maxPrice: '500', sort: 'price-asc', page: '3', available: 'all' }, cats);
+  const q2 = parseListingQuery({ category: 'books,electronics', q: 'calculator', maxPrice: '500' }, cats);
+  t('same search in a different order, sort or page is saved once', serializeSearch(q1) === serializeSearch(q2));
+  t('saved search ignores sort, page and the sold switch', !/sort|page|available/.test(serializeSearch(q1)));
+  t('serialized search round-trips through the parser', serializeSearch(parseListingQuery(searchParamsObject(serializeSearch(q1)), cats)) === serializeSearch(q1));
+  t('an empty search has nothing to save', !hasSearchCriteria(parseListingQuery({}, cats)) && !hasSearchCriteria(parseListingQuery({ sort: 'price-asc' }, cats)));
+  t('a price limit alone is worth saving', hasSearchCriteria(parseListingQuery({ maxPrice: '300' }, cats)));
+  t('unknown categories are dropped before saving', serializeSearch(parseListingQuery({ q: 'x', category: 'cars' }, cats)) === 'q=x');
+  t('label reads naturally', describeSearch(q2, { books: 'Books', electronics: 'Electronics' }) === '“calculator” · Books + Electronics · up to ₹500');
+  t('label for price band', describeSearch(parseListingQuery({ minPrice: '100', maxPrice: '300' }, cats)) === '₹100 to ₹300');
+  t('known saved-search limit message is shown to students', knownDbError('SAVED_SEARCH: you can keep up to 10 saved searches. Delete one to add another.') === 'You can keep up to 10 saved searches. Delete one to add another.');
+}
 
 if (failed) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
 console.log('\nAll tests passed');

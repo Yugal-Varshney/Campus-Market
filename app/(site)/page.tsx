@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth/session';
-import { getListings, getWishlistIds } from '@/lib/listings/queries';
+import { getListings, getTrendingListings, getWishlistIds } from '@/lib/listings/queries';
 import { parseListingQuery } from '@/lib/listings/search-params';
 import { getCategories, getCategoryNames } from '@/lib/categories';
+import { getPopularSearches } from '@/lib/saved-searches/queries';
+import { describeSearch, searchParamsObject } from '@/lib/saved-searches/query';
 import type { Listing } from '@/types';
 import ProductGrid from '@/components/marketplace/ProductGrid';
 
@@ -26,6 +28,14 @@ export default async function Home() {
     }
   }
   const wishlistIds = user ? await getWishlistIds(user.id) : [];
+
+  // Demand signals from real students: what is being saved and messaged about, and what several people are waiting for.
+  const [trending, popular] = canSeeListings ? await Promise.all([getTrendingListings(4), getPopularSearches(5)]) : [[], []];
+  const validCategories = categories.map((c) => c.value);
+  const wanted = popular.map((p) => ({
+    href: `/marketplace?${p.query}`,
+    label: describeSearch(parseListingQuery(searchParamsObject(p.query), validCategories), categoryNames),
+  }));
 
   return (
     <>
@@ -65,6 +75,23 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {(trending.length > 0 || wanted.length > 0) && (
+        <section className="home-latest home-trending" aria-labelledby="trending-title">
+          <header className="home-latest-head">
+            <h2 id="trending-title" className="font-display">Popular on campus</h2>
+          </header>
+          {wanted.length > 0 && (
+            <div className="wanted-row">
+              <p className="wanted-label">Students are looking for</p>
+              <ul className="hero-chips" aria-label="Searches several students saved">
+                {wanted.map((w) => <li key={w.href}><Link href={w.href} className="chip">{w.label}</Link></li>)}
+              </ul>
+            </div>
+          )}
+          {trending.length > 0 && <ProductGrid items={trending} wishlistIds={wishlistIds} cols={4} categoryNames={categoryNames} />}
+        </section>
+      )}
 
       <section className="home-latest" aria-labelledby="latest-title">
         {canSeeListings ? (

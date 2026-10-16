@@ -135,6 +135,12 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      saved_searches: {
+        Row: { id: number; user_id: string; query: string; label: string; notify: boolean; last_checked_at: string; created_at: string };
+        Insert: { user_id?: string; query: string; label: string; notify?: boolean };
+        Update: { notify?: boolean; last_checked_at?: string };
+        Relationships: [];
+      };
       contact_shares: {
         Row: {
           conversation_id: number;
@@ -221,6 +227,8 @@ export type Database = {
       request_contact: { Args: { p_conversation_id: number }; Returns: string };
       respond_contact_request: { Args: { p_conversation_id: number; p_approve: boolean }; Returns: string };
       revoke_contact_share: { Args: { p_conversation_id: number }; Returns: undefined };
+      get_trending_items: { Args: { p_days?: number; p_limit?: number }; Returns: { item_id: number; score: number }[] };
+      get_popular_searches: { Args: { p_days?: number; p_min_users?: number; p_limit?: number }; Returns: { search_query: string; searchers: number }[] };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

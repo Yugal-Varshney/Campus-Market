@@ -29,6 +29,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
         action={updateListing.bind(null, id)}
         submitLabel="SAVE CHANGES"
         categories={categories}
+        sellerName={item.sellerName}
         initial={{ title: item.title, description: item.description, category: item.category, listingType: item.listingType,
           price: item.price, condition: item.condition, phone: priv?.contact_phone ?? '', imageUrl: item.imageUrl,
           rentUnit: item.rentUnit, rentMaxUnits: item.rentMaxUnits }}

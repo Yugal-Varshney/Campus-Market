@@ -28,34 +28,35 @@ export interface ValidListing {
 export const PHONE_RE = /^[0-9+()\s-]{7,20}$/;
 
 /** Shared by the form (UX) and the server action (enforcement). The DB re-checks too. */
-export function validateListing(i: ListingInput, allowedCategories?: string[]): { value?: ValidListing; error?: string } {
+/** `field` names the form input the error belongs to, so the form can show it next to that input. */
+export function validateListing(i: ListingInput, allowedCategories?: string[]): { value?: ValidListing; error?: string; field?: string } {
   const title = i.title.trim();
   const description = i.description.trim();
   const phone = i.phone.trim();
-  if (title.length < 3) return { error: 'Give your listing a clear title (at least 3 characters).' };
-  if (title.length > 120) return { error: 'Title must be 120 characters or fewer.' };
-  if (description.length > 1000) return { error: 'Description must be 1000 characters or fewer.' };
-  if (!Number.isFinite(i.price) || i.price <= 0) return { error: 'Price must be greater than ₹0.' };
-  if (i.price > MAX_PRICE) return { error: 'That price looks too high for a campus listing.' };
+  if (title.length < 3) return { error: 'Give your listing a clear title (at least 3 characters).', field: 'title' };
+  if (title.length > 120) return { error: 'Title must be 120 characters or fewer.', field: 'title' };
+  if (description.length > 1000) return { error: 'Description must be 1000 characters or fewer.', field: 'description' };
+  if (!Number.isFinite(i.price) || i.price <= 0) return { error: 'Price must be greater than ₹0.', field: 'price' };
+  if (i.price > MAX_PRICE) return { error: 'That price looks too high for a campus listing.', field: 'price' };
   const allowed = allowedCategories ?? CATEGORIES.map((c) => c.value);
-  if (!allowed.includes(i.category)) return { error: 'Pick a valid category.' };
+  if (!allowed.includes(i.category)) return { error: 'Pick a valid category.', field: 'category' };
   if (i.listingType !== 'sell' && i.listingType !== 'rent')
-    return { error: 'Choose whether the item is for sale or for rent.' };
-  if (!CONDITIONS.some((c) => c.value === i.condition)) return { error: 'Pick a valid condition.' };
-  if (phone && !PHONE_RE.test(phone)) return { error: 'Enter a valid phone number (digits, spaces, + and - only).' };
+    return { error: 'Choose whether the item is for sale or for rent.', field: 'listingType' };
+  if (!CONDITIONS.some((c) => c.value === i.condition)) return { error: 'Pick a valid condition.', field: 'condition' };
+  if (phone && !PHONE_RE.test(phone)) return { error: 'Enter a valid phone number (digits, spaces, + and - only).', field: 'phone' };
 
   // Rental terms: required unit for rentals, optional whole-number maximum; always empty for items for sale.
   let rentUnit: RentUnit | null = null;
   let rentMaxUnits: number | null = null;
   if (i.listingType === 'rent') {
     const unit = RENT_UNITS.find((u) => u.value === i.rentUnit);
-    if (!unit) return { error: 'Choose whether the rent is charged per day, per week or per month.' };
+    if (!unit) return { error: 'Choose whether the rent is charged per day, per week or per month.', field: 'rentUnit' };
     rentUnit = unit.value;
     const raw = i.rentMaxUnits;
     if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
       const n = Number(raw);
       if (!Number.isInteger(n) || n < 1 || n > unit.max)
-        return { error: `Longest rental must be a whole number from 1 to ${unit.max} ${unit.plural}, or left empty.` };
+        return { error: `Longest rental must be a whole number from 1 to ${unit.max} ${unit.plural}, or left empty.`, field: 'rentMaxUnits' };
       rentMaxUnits = n;
     }
   }
