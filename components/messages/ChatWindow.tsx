@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { sendMessage } from '@/lib/messages/actions';
 import type { ContactShareStatus, Message } from '@/types';
 import ReportButton from '@/components/report/ReportButton';
 import ContactPanel from './ContactPanel';
 import MessageBubble from './MessageBubble';
+import { UNREAD_REFRESH_EVENT } from './useUnreadCount';
 import { safely } from '@/lib/safe-action';
 
 const BUYER_STARTERS = ['Is this still available?', 'Where on campus can we meet?', 'Is the price negotiable?'];
@@ -31,6 +32,20 @@ export default function ChatWindow({ conversationId, userId, title, otherParty, 
 
   const add = (m: Message) => setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
 
+  // Tell the database this chat has been seen, then make the unread badges re-count.
+  const markRead = useCallback(() => {
+    createClient()
+      .rpc('mark_conversation_read', { p_conversation_id: conversationId })
+      .then(() => window.dispatchEvent(new Event(UNREAD_REFRESH_EVENT)), () => {});
+  }, [conversationId]);
+
+  useEffect(() => {
+    markRead(); // opening the chat counts as reading it
+    const onVisible = () => { if (document.visibilityState === 'visible') markRead(); }; // came back to this tab
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [markRead]);
+
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -40,10 +55,11 @@ export default function ChatWindow({ conversationId, userId, title, otherParty, 
           const r = payload.new as { id: number; conversation_id: number; sender_id: string; body: string; created_at: string };
           add({ id: r.id, conversationId: r.conversation_id, senderId: r.sender_id, body: r.body, createdAt: r.created_at });
           setTick((t) => t + 1); // a new message is a good moment to re-read the contact-request state
+          if (r.sender_id !== userId && document.visibilityState === 'visible') markRead(); // they are looking at it right now
         })
       .subscribe((status) => setLive(status !== 'CHANNEL_ERROR' && status !== 'TIMED_OUT'));
     return () => { supabase.removeChannel(channel); };
-  }, [conversationId]);
+  }, [conversationId, userId, markRead]);
 
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight }); }, [messages.length]);
 
