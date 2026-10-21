@@ -19,18 +19,20 @@ export default async function Home() {
   const browsingOpen = process.env.REQUIRE_LOGIN_TO_BROWSE === 'false';
   const canSeeListings = Boolean(user) || browsingOpen;
 
-  let items: Listing[] | null = null;
-  if (canSeeListings) {
-    try {
-      items = (await getListings(parseListingQuery({}, categories.map((c) => c.value)))).items.slice(0, HOME_LISTINGS);
-    } catch {
-      items = null;
-    }
-  }
-  const wishlistIds = user ? await getWishlistIds(user.id) : [];
+  // Load the independent homepage sections together instead of making visitors wait for each section in turn.
+  const itemsPromise: Promise<Listing[] | null> = canSeeListings
+    ? getListings(parseListingQuery({}, categories.map((c) => c.value)))
+        .then((result) => result.items.slice(0, HOME_LISTINGS))
+        .catch(() => null)
+    : Promise.resolve(null);
+  const [items, wishlistIds, trending, popular] = await Promise.all([
+    itemsPromise,
+    user ? getWishlistIds(user.id) : Promise.resolve([] as number[]),
+    canSeeListings ? getTrendingListings(4) : Promise.resolve([]),
+    canSeeListings ? getPopularSearches(5) : Promise.resolve([]),
+  ]);
 
   // Demand signals from real students: what is being saved and messaged about, and what several people are waiting for.
-  const [trending, popular] = canSeeListings ? await Promise.all([getTrendingListings(4), getPopularSearches(5)]) : [[], []];
   const validCategories = categories.map((c) => c.value);
   const wanted = popular.map((p) => ({
     href: `/marketplace?${p.query}`,

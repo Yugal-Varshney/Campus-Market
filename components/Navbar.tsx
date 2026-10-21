@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getActingRole } from '@/lib/staff/auth';
-import { getWishlistIds } from '@/lib/listings/queries';
+import { getWishlistCount } from '@/lib/listings/queries';
 import { getAlertCount } from '@/lib/saved-searches/queries';
 import { getUnreadCount } from '@/lib/messages/queries';
 import MessagesLink from './messages/MessagesLink';
@@ -22,7 +22,7 @@ const BellIcon = () => (
 export default async function Navbar() {
   const user = await getCurrentUser();
   const [wishlistCount, role, alertCount, unreadCount] = user
-    ? await Promise.all([getWishlistIds(user.id).then((ids) => ids.length), getActingRole(), getAlertCount(user.id), getUnreadCount()])
+    ? await Promise.all([getWishlistCount(user.id), getActingRole(), getAlertCount(user.id), getUnreadCount()])
     : [0, 'student' as const, 0, 0];
 
   return (

@@ -56,6 +56,16 @@ export async function getWishlistIds(userId: string): Promise<number[]> {
   return (data ?? []).map((r) => r.item_id);
 }
 
+/** Count saved items without transferring every wishlist row to the server. */
+export async function getWishlistCount(userId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from('wishlists')
+    .select('item_id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+  return error ? 0 : count ?? 0;
+}
+
 export async function getWishlist(userId: string): Promise<WishlistItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase

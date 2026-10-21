@@ -22,19 +22,17 @@ type SP = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function MarketplacePage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  const [categories, categoryNames] = await Promise.all([getCategories(), getCategoryNames()]);
+  // These requests are independent; run them together so auth doesn't add a serial round trip.
+  const [categories, categoryNames, user] = await Promise.all([getCategories(), getCategoryNames(), getCurrentUser()]);
   const query = parseListingQuery(sp, categories.map((c) => c.value));
-  const user = await getCurrentUser();
-
-  let result: Paginated<Listing> | null = null;
-  try {
-    result = await getListings(query);
-  } catch {
-    result = null;
-  }
-  const wishlistIds = user ? await getWishlistIds(user.id) : [];
   const savable = hasSearchCriteria(query);
-  const saved = user && savable ? await isSearchSaved(serializeSearch(query)) : false;
+
+  // Listing results, wishlist state and saved-search state do not depend on one another.
+  const [result, wishlistIds, saved] = await Promise.all([
+    getListings(query).catch((): null => null),
+    user ? getWishlistIds(user.id) : Promise.resolve([] as number[]),
+    user && savable ? isSearchSaved(serializeSearch(query)) : Promise.resolve(false),
+  ]);
   const flat = (k: string) => (Array.isArray(sp[k]) ? (sp[k] as string[])[0] : (sp[k] as string | undefined));
   const keep = { q: flat('q'), category: flat('category'), minPrice: flat('minPrice'), maxPrice: flat('maxPrice'), sort: flat('sort'), available: flat('available') };
 
