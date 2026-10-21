@@ -23,16 +23,22 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function ItemPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { id } = await params;
   const sp = await searchParams;
-  const item = await load(id);
+  // Listing and auth are independent, so don't serialize two network-backed operations.
+  const [item, user] = await Promise.all([load(id), getCurrentUser()]);
   if (!item) notFound();
-  const user = await getCurrentUser();
-  const wishlisted = user ? (await getWishlistIds(user.id)).includes(item.id) : false;
   const st = statusInfo(item);
   const isOwner = !!user && item.sellerId === user.id;
-  const hasConversations = isOwner ? (await countConversations(item.id)) > 0 : false;
-  const share = user && !isOwner && item.sellerId ? await getShareForItem(item.id, user.id) : null;
   const terms = rentTerms(item);
-  const names = await getCategoryNames();
+
+  // Resolve independent detail-page data concurrently after ownership is known.
+  const [wishlistIds, conversationCount, share, names] = await Promise.all([
+    user ? getWishlistIds(user.id) : Promise.resolve([] as number[]),
+    isOwner ? countConversations(item.id) : Promise.resolve(0),
+    user && !isOwner && item.sellerId ? getShareForItem(item.id, user.id) : Promise.resolve(null),
+    getCategoryNames(),
+  ]);
+  const wishlisted = wishlistIds.includes(item.id);
+  const hasConversations = conversationCount > 0;
   const justPosted = isOwner && sp.posted === '1';
   const justUpdated = isOwner && sp.updated === '1';
 
