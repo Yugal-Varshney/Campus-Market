@@ -32,7 +32,8 @@ export default function LoginForm({ next, linkError }: { next?: string; linkErro
           {resetPending ? 'Sending…' : 'Forgot password? (enter your email above)'}
         </button>
       </form>
-      <p className="field-hint" style={{ marginTop: '1rem' }}>New here? <Link href="/register" style={{ textDecoration: 'underline' }}>Create an account</Link></p>
+      <p className="field-hint" style={{ marginTop: '1rem' }}>New here?</p>
+      <Link href="/register" className="btn btn-outline btn-cta-outline" style={{ width: '100%' }}>CREATE AN ACCOUNT</Link>
     </>
   );
 }
