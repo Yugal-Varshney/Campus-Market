@@ -14,7 +14,7 @@ export function whatsappNumber(phone: string): string | null {
 }
 
 /** Seller contact details with one-tap actions. Used on the listing page and inside the chat. */
-export default function ContactCard({ contact }: { contact: SellerContact }) {
+export default function ContactCard({ contact, onClose }: { contact: SellerContact; onClose?: () => void }) {
   const [copied, setCopied] = useState('');
   const wa = contact.phone ? whatsappNumber(contact.phone) : null;
 
@@ -30,7 +30,14 @@ export default function ContactCard({ contact }: { contact: SellerContact }) {
 
   return (
     <div className="contact-card">
-      <p className="eyebrow">Seller contact</p>
+      <div className="contact-card-head">
+        <p className="eyebrow">Seller contact</p>
+        {onClose && (
+          <button type="button" className="contact-close" onClick={onClose} aria-label="Close contact details">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        )}
+      </div>
       <p className="contact-line"><span>Name</span><strong>{contact.name}</strong></p>
       {contact.email && <p className="contact-line"><span>Email</span><a href={`mailto:${contact.email}`}>{contact.email}</a></p>}
       {contact.phone && <p className="contact-line"><span>Phone</span><a href={`tel:${contact.phone.replace(/[^\d+]/g, '')}`}>{contact.phone}</a></p>}

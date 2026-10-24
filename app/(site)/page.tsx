@@ -70,7 +70,7 @@ export default async function Home() {
               </>
             ) : (
               <>
-                <Link href="/register" className="btn btn-dark">Create account</Link>
+                <Link href="/register" className="btn btn-primary btn-cta">Create account</Link>
                 <Link href="/login" className="hero-link">Already a member? Sign in →</Link>
               </>
             )}

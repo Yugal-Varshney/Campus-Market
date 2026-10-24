@@ -81,7 +81,7 @@ export default function ContactPanel({ conversationId, itemId, isBuyer, otherPar
               <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={reveal}>VIEW CONTACT DETAILS</button>
             </div>
           )}
-          {contact && <ContactCard contact={contact} />}
+          {contact && <ContactCard contact={contact} onClose={() => setContact(null)} />}
         </>
       )}
       {!isBuyer && status === 'requested' && (
