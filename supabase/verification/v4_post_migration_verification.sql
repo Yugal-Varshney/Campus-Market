@@ -1,5 +1,3 @@
--- V4 post-migration verification (migrations 010 + 011) — READ ONLY (one select statement). Run in the SQL Editor.
--- Expected: the last row says "0 FAIL". Paste the whole result back to me.
 with c(area, check_name, expected, actual) as (
   select 'tables', 'contact_shares exists, RLS on, not forced', 'exists, RLS on',
     coalesce((select case when t.relrowsecurity and not t.relforcerowsecurity then 'exists, RLS on' else 'RLS wrong' end

@@ -1,14 +1,7 @@
--- v3_post_migration_data_checks.sql (PART 2 of 2: rate-limit rules, categories, pure-function behaviour) — READ-ONLY.
--- Run ONLY after PART 1 (v3_post_migration_verification.sql) shows 0 FAIL: this part reads the V3 tables and calls two
--- pure helper functions, so it would raise "relation/function does not exist" if a migration were missing.
--- One SELECT; reads data only (is_display_name_reserved / v3_effective_status / acting_role are pure and write nothing).
--- Result: mig | area | check_name | expected | actual | status   (first row = overall summary; must read 0 FAIL)
-
 with
 exp_rules(action, win, mx) as (values ('listing_create',3600,5),('listing_create',86400,20),('report_create',3600,3),('report_create',86400,10),('chat_start',86400,20),
   ('message_send',600,60),('photo_upload',3600,30),('contact_lookup',3600,40),('moderator_action',3600,200)),
 checks(mig, area, area_name, check_name, expected, actual, status) as (
-  -- 9 ── rate-limit rules: exactly the agreed set, nothing extra
   select '005', 9, 'rate limits', coalesce(e.action, r.action) || ' / ' || coalesce(e.win, r.window_seconds)::text || 's',
          coalesce(e.mx::text, '(no such rule)'), coalesce(r.max_count::text, 'MISSING'),
          case when e.mx is not null and r.max_count = e.mx then 'PASS' else 'FAIL' end
@@ -17,7 +10,6 @@ checks(mig, area, area_name, check_name, expected, actual, status) as (
   select '005', 9, 'rate limits', 'rate_limit_events currently stored', '(any, small)', (select count(*) from public.rate_limit_events)::text, 'INFO'
 
   union all
-  -- 10 ── data integrity that involves V3 objects
   select 'V3', 10, 'data preserved', 'listings whose category has no category row', '0', (select count(*) from public.items i where not exists (select 1 from public.categories c where c.slug = i.category))::text,
          case when (select count(*) from public.items i where not exists (select 1 from public.categories c where c.slug = i.category)) = 0 then 'PASS' else 'FAIL' end
   union all
@@ -33,7 +25,6 @@ checks(mig, area, area_name, check_name, expected, actual, status) as (
          (select count(*) from public.reports)::text || ' / ' || (select count(*) from public.moderation_actions)::text || ' / ' || (select count(*) from public.audit_logs)::text || ' / ' || (select count(*) from public.security_events)::text, 'INFO'
 
   union all
-  -- 11 ── categories
   select '008', 11, 'categories', 'seeded categories are exactly the V2 values, in order', 'books, notes, electronics, stationary',
          (select string_agg(slug, ', ' order by sort_order, slug) from public.categories),
          case when (select string_agg(slug, ', ' order by sort_order, slug) from public.categories) = 'books, notes, electronics, stationary' then 'PASS' else 'INFO' end
@@ -42,7 +33,6 @@ checks(mig, area, area_name, check_name, expected, actual, status) as (
   from public.categories c
 
   union all
-  -- 12 ── behaviour of the pure helper functions
   select '009', 12, 'pure functions', 'is_display_name_reserved(' || quote_literal(t.n) || ')', t.exp::text, public.is_display_name_reserved(t.n)::text,
          case when public.is_display_name_reserved(t.n) = t.exp then 'PASS' else 'FAIL' end
   from (values ('Admin', true), ('admin1', true), ('Campus Market', true), ('4dmin', true), ('M0derator', true), ('Admin Support', true), ('System', true),

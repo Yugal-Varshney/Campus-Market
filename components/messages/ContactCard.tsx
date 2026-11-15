@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import type { SellerContact } from '@/types';
 
-/** WhatsApp wants country code + digits. A bare 10-digit number is assumed to be Indian. Returns null when unsure. */
 export function whatsappNumber(phone: string): string | null {
   const digits = phone.replace(/\D/g, '');
   if (phone.trim().startsWith('+')) return digits.length >= 8 ? digits : null;
@@ -13,7 +12,6 @@ export function whatsappNumber(phone: string): string | null {
   return null;
 }
 
-/** Seller contact details with one-tap actions. Used on the listing page and inside the chat. */
 export default function ContactCard({ contact, onClose }: { contact: SellerContact; onClose?: () => void }) {
   const [copied, setCopied] = useState('');
   const wa = contact.phone ? whatsappNumber(contact.phone) : null;

@@ -6,7 +6,6 @@ import { useState, useTransition } from 'react';
 import { saveSearch } from '@/lib/saved-searches/actions';
 import { safely } from '@/lib/safe-action';
 
-/** "Save this search" for the current filters. Signed-out visitors are sent to sign in and brought back here. */
 export default function SaveSearchButton({ rawQuery, saved, signedIn, loginHref }: { rawQuery: string; saved: boolean; signedIn: boolean; loginHref: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();

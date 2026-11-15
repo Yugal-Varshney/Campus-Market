@@ -1,4 +1,3 @@
-// Run with: npm test   (plain assertions, no test framework needed)
 import { validateListing, sniffImageType, validateImageMeta } from '../lib/validation/listing';
 import { isCollegeEmail, safeNext, validateRegistration, parseOtpType } from '../lib/validation/auth';
 import { parseListingQuery } from '../lib/listings/search-params';
@@ -51,7 +50,6 @@ t('query params sanitised', q.categories.join() === 'books,notes' && q.maxPrice 
 t('demo image filename resolves to /uploads', resolveImageUrl('calculator.jpg') === '/uploads/calculator.jpg' && resolveImageUrl('../uploads/calculator.jpg') === '/uploads/calculator.jpg');
 t('absolute image URL untouched', resolveImageUrl('https://x.co/a.jpg') === 'https://x.co/a.jpg');
 
-// ---- V3 database error mapping (migrations 005-009) ----
 t('rate limit message is friendly', /5 per 60 minutes/.test(friendlyDbError('RATE_LIMIT: too many "listing_create" actions (limit 5 per 60 minutes). Please try again later.', 'x')));
 t('rate limit hides internal action name', !/listing_create/.test(friendlyDbError('RATE_LIMIT: too many "listing_create" actions (limit 5 per 60 minutes). Please try again later.', 'x')));
 t('rate limit without numbers still friendly', friendlyDbError('RATE_LIMIT: odd', 'x') !== 'x');
@@ -64,7 +62,6 @@ t('unknown database error falls back', friendlyDbError('duplicate key value viol
 t('RLS error text is not shown to users', knownDbError('new row violates row-level security policy for table "items"') === null);
 t('missing error falls back', friendlyDbError(undefined, 'generic') === 'generic');
 
-// ---- email link types (token-hash flow) ----
 t('signup link type accepted', parseOtpType('signup') === 'signup');
 t('recovery link type accepted', parseOtpType('recovery') === 'recovery');
 t('email_change link type accepted', parseOtpType('email_change') === 'email_change');
@@ -72,12 +69,10 @@ t('unknown link type rejected', parseOtpType('magiclink') === null);
 t('missing link type rejected', parseOtpType(null) === null);
 t('non-string link type rejected', parseOtpType(['recovery']) === null);
 
-// ---- listing status labels ----
 t('inactive listing shows UNAVAILABLE', statusInfo({ status: 'inactive', listingType: 'sell' }).label === 'UNAVAILABLE');
 t('inactive listing counts as done', statusInfo({ status: 'inactive', listingType: 'rent' }).done === true);
 t('active rent listing still FOR RENT', statusInfo({ status: 'active', listingType: 'rent' }).label === 'FOR RENT');
 
-// ---- rental terms (migration 011) ----
 const rent = { ...ok, listingType: 'rent', rentUnit: 'week', rentMaxUnits: '' };
 t('rental with unit accepted', validateListing(rent).value?.rentUnit === 'week');
 t('rental without unit rejected', !!validateListing({ ...rent, rentUnit: '' }).error);
@@ -96,12 +91,10 @@ t('rentTerms per day without limit', (() => { const r = rentTerms({ listingType:
 t('legacy rental without unit falls back to week', rentTerms({ listingType: 'rent', rentUnit: null, rentMaxUnits: null })?.perUnit === 'per week');
 t('sale listing has no rent terms', rentTerms({ listingType: 'sell', rentUnit: null, rentMaxUnits: null }) === null);
 
-// ---- contact consent messages (migration 010) ----
 t('contact share message mapped', friendlyDbError('CONTACT_SHARE: the seller has not shared contact details with you yet. Ask for them in the chat.', 'x').startsWith('The seller has not shared'));
 t('contact decline cooldown message mapped', /24 hours/.test(friendlyDbError('CONTACT_SHARE: the seller declined your request recently. You can ask again after 24 hours.', 'x')));
 t('plain contact errors still fall back', friendlyDbError('Listing not found.', 'generic') === 'generic');
 
-// ---- reports (migration 007 rules) ----
 t('report with reason accepted', validateReport('scam', '').value?.reason === 'scam');
 t('report without reason rejected', !!validateReport('', '').error);
 t('report with unknown reason rejected', !!validateReport('spam', '').error);
@@ -110,7 +103,6 @@ t('report "other" with explanation accepted', !!validateReport('other', 'Seller 
 t('report details over 500 characters rejected', !!validateReport('scam', 'x'.repeat(501)).error);
 t('report details are trimmed', validateReport('scam', '  fake photo  ').value?.description === 'fake photo');
 
-// ---- staff screens: input rules ----
 t('reason of 2 characters rejected', 'error' in cleanReason('ab'));
 t('reason of 3 characters accepted', 'value' in cleanReason('abc'));
 t('reason is trimmed', (() => { const r = cleanReason('  spam listing  '); return 'value' in r && r.value === 'spam listing'; })());
@@ -131,7 +123,6 @@ t('non-uuid rejected', !isUuid('not-a-uuid') && !isUuid(42) && !isUuid("1' or '1
 t('positive integer id accepted', isId(5));
 t('zero, fractions and strings rejected as ids', !isId(0) && !isId(1.5) && !isId('5') && !isId(-3));
 
-// ---- account notices shown to the person ----
 const clean = { account_status: 'active', suspended_until: null, suspension_reason: null, last_warning_at: null, last_warning_reason: null };
 const t0 = Date.parse('2026-10-12T10:00:00Z');
 t('active account has no notice', buildAccountNotice(clean, t0) === null);
@@ -145,7 +136,6 @@ t('open-ended suspension says until further notice', /further notice/.test(build
 t('recent warning shown', buildAccountNotice({ ...clean, last_warning_at: '2026-10-10T10:00:00Z', last_warning_reason: 'be polite' }, t0)?.kind === 'warned');
 t('old warning hidden after 14 days', buildAccountNotice({ ...clean, last_warning_at: '2026-09-20T10:00:00Z', last_warning_reason: 'be polite' }, t0) === null);
 
-// ---- database-driven categories (Phase 6) ----
 t('admin-created category accepted by listing validation', !!validateListing({ ...ok, category: 'lab-equipment' }, ['books', 'lab-equipment']).value);
 t('category missing from the live list rejected', !!validateListing({ ...ok, category: 'books' }, ['notes']).error);
 t('built-in list still used when no live list is given', !!validateListing({ ...ok, category: 'books' }).value);
@@ -159,7 +149,6 @@ t('category label prefers the database name', categoryLabel('lab-equipment', { '
 t('category label falls back to the built-in name', categoryLabel('books') === 'Books');
 t('category label falls back to the slug', categoryLabel('mystery') === 'mystery');
 
-// ---- admin category form rules (migration 008) ----
 t('slugify makes a clean slug', slugify('Lab Equipment & Tools!') === 'lab-equipment-tools');
 t('slugify trims dashes', slugify('  --Books--  ') === 'books');
 t('slugify caps at 40 characters', slugify('a'.repeat(60)).length === 40);
@@ -170,14 +159,12 @@ t('category slug with spaces rejected', 'error' in validateCategory({ name: 'Lab
 t('category description over 200 characters rejected', 'error' in validateCategory({ name: 'Lab', slug: 'lab', description: 'x'.repeat(201) }, true));
 t('slug not required when editing', 'value' in validateCategory({ name: 'Lab Gear', description: '' }, false));
 
-// ---- Phase 3: errors name the field they belong to, so the form can mark it ----
 t('title error names the title field', validateListing({ ...ok, title: 'ab' }).field === 'title');
 t('price error names the price field', validateListing({ ...ok, price: 0 }).field === 'price');
 t('phone error names the phone field', validateListing({ ...ok, phone: 'abc' }).field === 'phone');
 t('rental max error names its field', validateListing({ ...rent, rentMaxUnits: '0' }).field === 'rentMaxUnits');
 t('valid listing has no field error', validateListing(ok).field === undefined);
 
-// ---- Phase 4: saved searches ----
 {
   const cats = ['books', 'electronics'];
   const q1 = parseListingQuery({ q: ' calculator ', category: 'electronics,books', maxPrice: '500', sort: 'price-asc', page: '3', available: 'all' }, cats);
@@ -193,7 +180,6 @@ t('valid listing has no field error', validateListing(ok).field === undefined);
   t('known saved-search limit message is shown to students', knownDbError('SAVED_SEARCH: you can keep up to 10 saved searches. Delete one to add another.') === 'You can keep up to 10 saved searches. Delete one to add another.');
 }
 
-// ---- Phase 5: failed requests and usage numbers ----
 t('delta: growth', formatDelta(15, 10) === '+50%');
 t('delta: drop', formatDelta(9, 10) === '−10%');
 t('delta: nothing before', formatDelta(4, 0) === 'new' && formatDelta(0, 0) === 'no change');

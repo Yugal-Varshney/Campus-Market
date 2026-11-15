@@ -1,22 +1,5 @@
--- 008_v3_categories.sql — Campus Market V3: categories become a table.
---
--- WHAT THIS CHANGES:
---   ADDITIVE: new table `categories` seeded with EXACTLY the four values V2 already uses
---     (books, notes, electronics, stationary); admin RPCs; a guard trigger.
---   DESTRUCTIVE-LOOKING (no row is modified): DROPS the CHECK constraint on items.category
---     (category in (...four values...)) and REPLACES it with a FOREIGN KEY items.category -> categories.slug.
---   The PRE-FLIGHT GATE below runs FIRST: if any existing items.category has no matching category the
---   migration ABORTS and lists the offending values. It never rewrites listing categories.
--- Categories are never deleted by the app: admins disable them. A disabled category stays on existing
--- listings (they remain visible) but cannot be chosen for new listings or when changing a category.
--- SECURITY DEFINER protections: same rules as 006 (search_path = '', admin role re-checked inside,
--- EXECUTE only for authenticated, audit row in the same transaction, slug is immutable).
--- Idempotent; one transaction. Requires 006.
--- Known limitation: direct SQL edits of `categories` are not auto-audited (only RPC changes are).
-
 begin;
 
--- ───────────────────────── PRE-FLIGHT GATE ─────────────────────────
 do $$
 declare bad text; n integer;
 begin
@@ -44,7 +27,6 @@ begin
   end if;
 end $$;
 
--- ───────────────────────── categories ─────────────────────────
 create table if not exists public.categories (
   id          bigint generated always as identity primary key,
   name        text not null,
@@ -60,7 +42,6 @@ create table if not exists public.categories (
 );
 create unique index if not exists categories_name_lower on public.categories (lower(name));
 
--- Seed = the exact values already used by V2 (display names are the plain labels the V2 UI shows).
 insert into public.categories (name, slug, sort_order) values
   ('Books', 'books', 1), ('Notes', 'notes', 2), ('Electronics', 'electronics', 3), ('Stationary', 'stationary', 4)
 on conflict (slug) do nothing;
@@ -77,7 +58,6 @@ grant select on public.categories to authenticated;                 -- writes on
 drop policy if exists "categories readable" on public.categories;
 create policy "categories readable" on public.categories for select to authenticated using (true);
 
--- ───────────────────────── items.category: CHECK -> FOREIGN KEY ─────────────────────────
 do $$
 declare c record;
 begin
@@ -91,7 +71,6 @@ begin
   end if;
 end $$;
 
--- new listings / category changes must use an ACTIVE category (existing listings keep theirs)
 create or replace function public.items_v3_category_guard() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -106,7 +85,6 @@ drop trigger if exists items_v3_category_guard_trg on public.items;
 create trigger items_v3_category_guard_trg before insert or update of category on public.items
   for each row execute function public.items_v3_category_guard();
 
--- ───────────────────────── admin RPCs ─────────────────────────
 create or replace function public.admin_create_category(p_name text, p_slug text, p_description text default '')
 returns bigint language plpgsql security definer set search_path = '' as $$
 declare v_id bigint; v_slug text := lower(btrim(coalesce(p_slug, ''))); v_name text := btrim(coalesce(p_name, ''));
@@ -165,7 +143,6 @@ begin
   return p_id;
 end $$;
 
--- ───────────────────────── EXECUTE privileges ─────────────────────────
 revoke all on function public.items_v3_category_guard() from public, anon, authenticated, service_role;
 revoke all on function public.categories_touch()        from public, anon, authenticated, service_role;
 revoke all on function public.admin_create_category(text, text, text), public.admin_update_category(bigint, text, text, integer),

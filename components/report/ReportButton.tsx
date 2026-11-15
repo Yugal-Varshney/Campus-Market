@@ -5,7 +5,6 @@ import { REPORT_REASONS } from '@/lib/constants';
 import { submitReport } from '@/lib/reports/actions';
 import { validateReport } from '@/lib/validation/report';
 
-/** "Report" control for a listing (pass listingId) or a person (pass userId). The database enforces every rule. */
 export default function ReportButton({ listingId, userId, label = 'Report' }: { listingId?: number; userId?: string; label?: string }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');

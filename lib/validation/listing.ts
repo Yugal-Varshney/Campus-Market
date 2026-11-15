@@ -9,7 +9,6 @@ export interface ListingInput {
   price: number;
   condition: string;
   phone: string;
-  /** Rentals only. rentMaxUnits is optional and may be an empty string from the form. */
   rentUnit?: string;
   rentMaxUnits?: string | number | null;
 }
@@ -27,8 +26,6 @@ export interface ValidListing {
 
 export const PHONE_RE = /^[0-9+()\s-]{7,20}$/;
 
-/** Shared by the form (UX) and the server action (enforcement). The DB re-checks too. */
-/** `field` names the form input the error belongs to, so the form can show it next to that input. */
 export function validateListing(i: ListingInput, allowedCategories?: string[]): { value?: ValidListing; error?: string; field?: string } {
   const title = i.title.trim();
   const description = i.description.trim();
@@ -45,7 +42,6 @@ export function validateListing(i: ListingInput, allowedCategories?: string[]): 
   if (!CONDITIONS.some((c) => c.value === i.condition)) return { error: 'Pick a valid condition.', field: 'condition' };
   if (phone && !PHONE_RE.test(phone)) return { error: 'Enter a valid phone number (digits, spaces, + and - only).', field: 'phone' };
 
-  // Rental terms: required unit for rentals, optional whole-number maximum; always empty for items for sale.
   let rentUnit: RentUnit | null = null;
   let rentMaxUnits: number | null = null;
   if (i.listingType === 'rent') {
@@ -81,7 +77,6 @@ export function validateImageMeta(file: { type: string; size: number }): string 
   return null;
 }
 
-/** Server-side: check the real file signature rather than trusting the declared MIME type. */
 export function sniffImageType(bytes: Uint8Array): 'image/jpeg' | 'image/png' | 'image/webp' | null {
   if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
   if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png';

@@ -11,14 +11,12 @@ test.describe('reporting and moderation', () => {
     const mod = await session(browser, 'MOD');
     const id = await createListing(seller.page, { title, price: 75 });
 
-    // Student reports the listing, and cannot report it twice.
     await buyer.page.goto(`/marketplace/${id}`);
     await buyer.page.getByRole('button', { name: 'Report this listing' }).click();
     await buyer.page.getByLabel('What is wrong?').selectOption('scam');
     await buyer.page.getByRole('button', { name: 'SEND REPORT' }).click();
     await expect(buyer.page.getByText('Thanks. A moderator will review your report.')).toBeVisible();
 
-    // Moderator finds it in the queue and works it.
     await mod.page.goto('/moderator');
     await mod.page.getByRole('row', { name: new RegExp(title) }).getByRole('link').first().click();
     await expect(mod.page.getByText('REPORT #')).toBeVisible();
@@ -29,11 +27,9 @@ test.describe('reporting and moderation', () => {
     await mod.page.getByRole('button', { name: 'HIDE LISTING' }).click();
     await expect(mod.page.getByText(/Listing hidden/)).toBeVisible();
 
-    // A hidden listing is gone for other students.
     const res = await buyer.page.goto(`/marketplace/${id}`);
     expect(res?.status()).toBe(404);
 
-    // Moderator restores it and closes the report.
     await mod.page.getByLabel(/^Reason/).fill('Automated test: restoring.');
     await mod.page.getByRole('button', { name: 'RESTORE LISTING' }).click();
     await expect(mod.page.getByText('Listing restored.')).toBeVisible();

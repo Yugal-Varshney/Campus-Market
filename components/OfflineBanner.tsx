@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 
-/** Tells people when their connection drops, so a failed save is not a mystery. Hidden while online. */
 export default function OfflineBanner() {
   const [offline, setOffline] = useState(false);
   useEffect(() => {

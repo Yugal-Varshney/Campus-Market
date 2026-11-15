@@ -23,14 +23,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function ItemPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { id } = await params;
   const sp = await searchParams;
-  // Listing and auth are independent, so don't serialize two network-backed operations.
   const [item, user] = await Promise.all([load(id), getCurrentUser()]);
   if (!item) notFound();
   const st = statusInfo(item);
   const isOwner = !!user && item.sellerId === user.id;
   const terms = rentTerms(item);
 
-  // Resolve independent detail-page data concurrently after ownership is known.
   const [wishlistIds, conversationCount, share, names] = await Promise.all([
     user ? getWishlistIds(user.id) : Promise.resolve([] as number[]),
     isOwner ? countConversations(item.id) : Promise.resolve(0),

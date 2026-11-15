@@ -11,7 +11,6 @@ import { describeSearch, hasSearchCriteria, searchParamsObject, serializeSearch 
 
 const SIGN_IN = 'You need to sign in to continue.';
 
-/** Saves what the student is currently looking at. The query is re-parsed and rebuilt here, so only valid filters are stored. */
 export async function saveSearch(rawQuery: string): Promise<ActionState> {
   const user = await getCurrentUser();
   if (!user) return { error: SIGN_IN };
@@ -31,7 +30,6 @@ export async function setSavedSearchAlerts(id: number, notify: boolean): Promise
   const user = await getCurrentUser();
   if (!user) return { error: SIGN_IN };
   const supabase = await createClient();
-  // Turning alerts on starts counting from now, so old listings do not suddenly appear as "new".
   const patch = notify ? { notify, last_checked_at: new Date().toISOString() } : { notify };
   const { data, error } = await supabase.from('saved_searches').update(patch).eq('id', id).select('id');
   if (error || !data?.length) return { error: 'Could not update this saved search.' };
@@ -39,7 +37,6 @@ export async function setSavedSearchAlerts(id: number, notify: boolean): Promise
   return { success: notify ? 'Alerts are on.' : 'Alerts are off.' };
 }
 
-/** "I have looked at the new matches": the badge restarts from now. */
 export async function markSavedSearchSeen(id: number): Promise<ActionState> {
   const user = await getCurrentUser();
   if (!user) return { error: SIGN_IN };

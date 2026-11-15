@@ -1,6 +1,5 @@
 'use client';
 
-/** Last resort: the root layout itself failed, so this page brings its own <html> and <body>. */
 export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <html lang="en">

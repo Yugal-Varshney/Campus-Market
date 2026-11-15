@@ -2,12 +2,10 @@ import { categoryLabel } from '@/lib/constants';
 import { formatPrice } from '@/lib/format';
 import type { ListingQuery } from '@/types';
 
-/** What a saved search is allowed to remember: only things that change WHICH listings match (never sort, page or sold). */
 export function hasSearchCriteria(q: ListingQuery): boolean {
   return Boolean(q.q) || q.categories.length > 0 || q.minPrice !== null || q.maxPrice !== null;
 }
 
-/** One stable string per distinct search, so saving the same search twice is recognised. */
 export function serializeSearch(q: ListingQuery): string {
   const p = new URLSearchParams();
   if (q.q) p.set('q', q.q);
@@ -17,7 +15,6 @@ export function serializeSearch(q: ListingQuery): string {
   return p.toString();
 }
 
-/** "calculator" · Electronics · up to ₹500 */
 export function describeSearch(q: ListingQuery, names?: Record<string, string>): string {
   const parts: string[] = [];
   if (q.q) parts.push(`“${q.q}”`);
@@ -28,7 +25,6 @@ export function describeSearch(q: ListingQuery, names?: Record<string, string>):
   return (parts.join(' · ') || 'Everything').slice(0, 120);
 }
 
-/** Saved query string -> the plain object parseListingQuery() expects. */
 export function searchParamsObject(query: string): Record<string, string> {
   return Object.fromEntries(new URLSearchParams(query).entries());
 }

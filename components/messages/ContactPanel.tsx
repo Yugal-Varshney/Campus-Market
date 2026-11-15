@@ -13,11 +13,9 @@ interface Props {
   isBuyer: boolean;
   otherParty: string;
   initialStatus: ContactShareStatus | null;
-  /** Bumped by the chat when a new message arrives, so the request state is re-read right away. */
   refreshTick: number;
 }
 
-/** The seller decides who gets their email and phone. The database enforces it; this is the screen for it. */
 export default function ContactPanel({ conversationId, itemId, isBuyer, otherParty, initialStatus, refreshTick }: Props) {
   const [status, setStatus] = useState<ContactShareStatus | null>(initialStatus);
   const [contact, setContact] = useState<SellerContact | null>(null);
@@ -55,7 +53,6 @@ export default function ContactPanel({ conversationId, itemId, isBuyer, otherPar
     });
   };
 
-  // Sellers only see this bar when there is something to act on.
   if (!isBuyer && status !== 'requested' && status !== 'approved') return null;
 
   return (

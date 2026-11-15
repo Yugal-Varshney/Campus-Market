@@ -13,11 +13,9 @@ export interface PanelProps {
   report?: { id: number; status: string };
   listing?: { id: number; moderationStatus: string } | null;
   user?: { id: string; displayName: string; role: string; effectiveStatus: string } | null;
-  /** Admin user page only: show the role selector. */
   showRoleChange?: boolean;
 }
 
-/** One reason box, then the buttons that make sense for this report / listing / person. The database makes the final call. */
 export default function ModerationPanel({ actingRole, selfId, report, listing, user, showRoleChange = false }: PanelProps) {
   const router = useRouter();
   const [reason, setReason] = useState('');

@@ -10,7 +10,7 @@ export default function WishlistButton({ itemId, initial, className = 'wishlist-
 
   const onClick = () => {
     const next = !saved;
-    setSaved(next); // optimistic
+    setSaved(next);
     start(async () => {
       const res = await safely(() => toggleWishlist(itemId, next));
       if (res.error) setSaved(!next);

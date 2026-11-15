@@ -46,7 +46,7 @@ test.describe('listings: post, find, edit, rent, sell, delete', () => {
     await page.locator('#sell-title').fill(uniq('bad-rent'));
     await page.locator('#sell-price').fill('50');
     await page.locator('#sell-rent-unit').selectOption('month');
-    await page.locator('#sell-rent-max').fill('13'); // months are limited to 12
+    await page.locator('#sell-rent-max').fill('13');
     await page.getByRole('button', { name: 'POST LISTING' }).click();
     await expect(page.getByRole('alert')).toContainText(/longest rental/i);
     await expect(page).toHaveURL(/\/sell/);

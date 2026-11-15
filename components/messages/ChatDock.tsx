@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useUnreadCount } from './useUnreadCount';
 
-/** The floating message-icon button, with a live unread badge. */
 export default function ChatDock({ userId, initial }: { userId: string; initial: number }) {
   const count = useUnreadCount(userId, initial);
   return (

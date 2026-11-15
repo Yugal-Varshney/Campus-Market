@@ -1,5 +1,5 @@
 """V4 migration tests (local Postgres stand-in): 010 seller-consent contact sharing, 011 rental terms, and the
-staff permission rules the Phase 5 screens rely on.  Run:  python supabase/tests/local/test_v4.py
+staff permission rules the staff screens rely on.  Run:  python supabase/tests/local/test_v4.py
 
 NOT EXECUTED where it was written (no PostgreSQL there): the first run is the real test of these checks.
 If a check fails, read the printed message first; the test may need adjusting rather than the migration.
@@ -37,7 +37,7 @@ def verification_status(db):
     rows = db.su(VERIFY)
     return {r[1]: r[4] for r in rows}
 
-# ───────────────────────────────────────────── 1. GATES + IDEMPOTENCY ─────────────────────────────────────────────
+# 1. GATES + IDEMPOTENCY ─────────────────────────────────────────────
 head('1. 010 / 011 gates abort safely; both migrations are idempotent')
 d = build('v4g1', upto=1); s0 = h.snapshot(d)
 r = d.migrate(M010); t('010 refuses to run without 006', err(r, 'MIGRATION 010 ABORTED', '005 and 006') and h.snapshot(d) == s0, r[1][:140])
@@ -58,7 +58,7 @@ t('existing V2 data byte-identical after 010 + 011 (8 table fingerprints)', h.fi
 for uid, role in [(E, 'moderator'), (F, 'moderator'), (G, 'admin'), (H, 'admin')]:
     db.su('update public.profiles set role=%s where id=%s', (role, uid))
 
-# ───────────────────────────────────────────── 2. RENTAL TERMS (011) ─────────────────────────────────────────────
+# 2. RENTAL TERMS (011) ─────────────────────────────────────────────
 head('2. Rental terms: backfill and the items_rent_terms_valid constraint')
 t('existing rentals were set to per-week', (lambda u: len(u) >= 2 and set(u) == {'week'})([x[0] for x in db.su("select rent_unit from public.items where listing_type='rent'")]))
 t('sale listings carry no rental fields', db.su("select count(*) from public.items where listing_type='sell' and (rent_unit is not null or rent_max_units is not null)")[0][0] == 0)
@@ -74,7 +74,7 @@ t('API: new sale with a unit rejected', err(db.as_(A, INS.format(cols=',rent_uni
 t('API: switching a rental to a sale without clearing the unit is rejected', err(db.as_(A, "update public.items set listing_type='sell' where id=%s", (labcoat,)), 'items_rent_terms_valid'))
 t('API: switching to a sale works when the rental fields are cleared', ok(db.as_(A, "update public.items set listing_type='sell', rent_unit=null, rent_max_units=null where id=%s", (labcoat,))))
 
-# ───────────────────────────────────────────── 3. CONTACT CONSENT (010) ─────────────────────────────────────────────
+# 3. CONTACT CONSENT (010) ─────────────────────────────────────────────
 head('3. Contact consent: request -> approve -> read -> revoke')
 t('no approval yet: buyer cannot read contact details', err(db.as_(B, 'select * from public.get_contact(%s)', (chem,)), 'contact_share', 'not shared'))
 t('table starts empty', db.su('select count(*) from public.contact_shares')[0][0] == 0)
@@ -134,7 +134,7 @@ db.su("update public.items set status='active' where id=%s", (chem,))
 demo = db.su('select id from public.items where seller_id is null limit 1')
 if demo: t('showcase listing (no seller): contact details cannot be read', err(db.as_(B, 'select * from public.get_contact(%s)', (demo[0][0],)), 'contact_share'))
 
-# ───────────────────────────────────────────── 4. STAFF PERMISSIONS (Phase 5 screens) ─────────────────────────────────────────────
+# 4. STAFF PERMISSIONS (staff screens) ─────────────────────────────────────────────
 head('4. Staff permissions: the database refuses what the screens would hide')
 t('student cannot call staff functions', err(call(db, A, 'staff_get_user', G, keep=False), 'insufficient'))
 t('moderator cannot call admin functions', err(call(db, E, 'admin_ban_user', C, 'permission test', None, keep=False), 'insufficient'))
@@ -162,8 +162,8 @@ t('a disabled category cannot be used by new listings', db.as_(A, "insert into p
 t('disabling needs a reason', err(call(db, G, 'admin_set_category_active', cat, True, 'x', keep=False), 'reason'))
 call(db, G, 'admin_set_category_active', cat, True, 'testing enable')
 
-# ───────────────────────────────────────────── 5. VERIFICATION SCRIPT ─────────────────────────────────────────────
-head('5. The V4 verification script itself (syntax + results)')
+# 5. VERIFICATION SCRIPT ─────────────────────────────────────────────
+head('5. The verification script itself (syntax + results)')
 st = verification_status(db)
 t('verification script runs and reports 0 FAIL on a correct database', st.get('OVERALL (must be 0 FAIL)') == 'PASS' and 'FAIL' not in st.values(), [k for k, v in st.items() if v != 'PASS'])
 t('verification script flags a database that has not had 010/011', verification_status(build('v4neg')).get('OVERALL (must be 0 FAIL)') == 'FAIL')

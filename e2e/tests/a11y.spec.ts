@@ -2,7 +2,6 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { createListing, deleteListing, have, login, uniq } from './helpers';
 
-/** Automated WCAG 2.x A/AA scan. Only serious and critical findings fail the test; the rest are listed in the report. */
 async function scan(page: Page, label: string) {
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   const bad = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');

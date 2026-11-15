@@ -1,15 +1,6 @@
-/**
- * Hand-written types mirroring the Supabase schema (supabase/schema.v1.sql + migrations 002-011).
- * Phase 5 added the read-only moderation tables and the staff_* / admin_* RPC signatures used by the staff screens.
- * Phase 2 added the V3 columns that exist in the database (items.moderation_*, profiles.account_status
- * and friends) and the `inactive` listing status. Phase 4 added items.rent_unit / rent_max_units (011),
- * contact_shares + its RPCs (010) and the reports insert. Tables/RPCs that no screen uses yet (categories,
- * audit_logs, staff_* and admin_* functions) are intentionally not typed until they are needed.
- * Regenerate with `npx supabase gen types typescript --project-id <ref>` if you prefer.
- */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-type Category = string; // a categories.slug (migration 008 made categories a table; admins can add more)
+type Category = string;
 type ListingType = 'sell' | 'rent';
 type ListingStatus = 'active' | 'sold' | 'rented' | 'inactive';
 type ModerationStatus = 'approved' | 'pending' | 'hidden' | 'rejected';
@@ -20,7 +11,6 @@ type ContactShareStatus = 'requested' | 'approved' | 'declined' | 'revoked';
 type ReportReason = 'scam' | 'prohibited_item' | 'misleading_information' | 'duplicate_listing' | 'harassment' | 'inappropriate_content' | 'other';
 type ReportStatus = 'pending' | 'reviewing' | 'resolved' | 'dismissed';
 
-/** One row of staff_get_user() / admin_search_users(); email is only filled in for admins. */
 type StaffUserRow = {
   id: string;
   display_name: string;
@@ -137,7 +127,7 @@ export type Database = {
       };
       conversation_reads: {
         Row: { conversation_id: number; user_id: string; last_read_at: string };
-        Insert: never; // written only by the mark_conversation_read RPC
+        Insert: never;
         Update: never;
         Relationships: [];
       };
@@ -157,7 +147,7 @@ export type Database = {
           requested_at: string;
           decided_at: string | null;
         };
-        Insert: never; // written only by the request_contact / respond_contact_request / revoke_contact_share RPCs
+        Insert: never;
         Update: never;
         Relationships: [];
       };
@@ -175,7 +165,6 @@ export type Database = {
           target_snapshot: { type?: string; listing_title?: string; reported_user_name?: string };
           created_at: string;
         };
-        // reporter, status and the reported user of a listing report are set by a database trigger, not by the client
         Insert: { listing_id?: number | null; reported_user_id?: string | null; reason: ReportReason; description?: string };
         Update: never;
         Relationships: [];

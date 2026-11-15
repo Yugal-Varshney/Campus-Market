@@ -6,11 +6,6 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { getActingRole } from '@/lib/staff/auth';
 import { cleanReason, isId, isUuid, ROLES, suspensionUntil, validateCategory } from '@/lib/validation/staff';
 
-/**
- * Every action here is a thin wrapper around a database function from migrations 006-008. Those functions are the real
- * gatekeepers (role check, "moderators only act on students", 7-day cap, last-admin protection, audit trail); the checks
- * below only give faster, clearer messages. The database messages are written for staff, so they are shown as they are.
- */
 type Result = { error?: string; success?: string };
 
 async function gate(adminOnly = false): Promise<{ role: 'moderator' | 'admin' } | { error: string }> {
@@ -125,8 +120,6 @@ export async function setUserRole(userId: string, newRole: string, reason: strin
   const { error } = await supabase.rpc('admin_set_role', { p_user_id: userId, p_new_role: newRole, p_reason: r.value });
   return finish(error, `Role changed to ${newRole}.`);
 }
-
-// ---- categories (migration 008; admin only) ----
 
 export async function createCategory(name: string, slug: string, description: string): Promise<Result> {
   const g = await gate(true); if ('error' in g) return g;

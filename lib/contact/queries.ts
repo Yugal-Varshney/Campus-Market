@@ -2,10 +2,6 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type { ContactShareStatus } from '@/types';
 
-/**
- * Contact-sharing state (migration 010). These reads never throw: if the table is unreachable the screens simply
- * show no request state instead of failing. RLS limits rows to the buyer and the seller of each conversation.
- */
 export async function getShareForItem(itemId: number, buyerId: string): Promise<{ conversationId: number; status: ContactShareStatus } | null> {
   const supabase = await createClient();
   const { data, error } = await supabase

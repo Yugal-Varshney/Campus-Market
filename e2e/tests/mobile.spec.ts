@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createListing, deleteListing, have, login, uniq } from './helpers';
 
-// Runs in the "mobile" project (Pixel 5, 393 px wide).
 test.describe('phone layout', () => {
   test.skip(!have('A'), 'E2E_STUDENT_A_* not set');
 

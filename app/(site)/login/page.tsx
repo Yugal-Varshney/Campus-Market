@@ -9,7 +9,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <div className="auth-shell">
       <h1 className="font-display">WELCOME BACK</h1>
-      <p className="lead">Campus Market is for students only — your college email is your pass.</p>
+      <p className="lead">Campus Market is for students only - your college email is your pass.</p>
       <LoginForm next={sp.next ? safeNext(sp.next) : undefined} linkError={sp.error === 'link'} />
     </div>
   );

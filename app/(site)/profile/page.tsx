@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'My profile' };
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();
-  if (!user) return null; // middleware redirects signed-out visitors
+  if (!user) return null;
   const [listings, role, categoryNames] = await Promise.all([getMyListings(user.id), getCurrentRole(), getCategoryNames()]);
 
   return (

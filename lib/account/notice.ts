@@ -1,4 +1,3 @@
-/** What a student should be told about their own account state (migration 006). Pure so it can be unit-tested. */
 export interface ProfileStatus {
   account_status: string;
   suspended_until: string | null;

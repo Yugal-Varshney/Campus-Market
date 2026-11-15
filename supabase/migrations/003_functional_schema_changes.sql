@@ -1,18 +1,5 @@
--- 003_functional_schema_changes.sql — IIPS Market V2 (FUNCTIONAL / SCHEMA ONLY)
--- Additive and re-runnable. Run AFTER 002_security_fixes.sql. Nothing is dropped or rewritten.
---
--- FIRST STATEMENT = PRE-FLIGHT GATE: aborts (changing nothing) unless 002's protections are in place:
---   RLS on profiles; anon and authenticated have no INSERT/UPDATE/DELETE (table OR column level) on
---   profiles; no permissive write policy exists on profiles; RLS is on for messages and conversations.
---
--- Adds: role column (student|moderator|admin), indexes for paginated queries,
---       Realtime publication for chat, and an optional public-browsing policy (OFF by default).
-
 begin;
 
--- ───────────────────────── PRE-FLIGHT GATE: role protection + private-chat prerequisites ─────────────────────────
--- The role column is only safe if students can never write to profiles, and Realtime only safe to
--- enable on tables that have RLS. Nothing below this block runs unless every prerequisite holds.
 do $$
 declare
   problems text[] := '{}';
@@ -61,11 +48,6 @@ begin
   end if;
 end $$;
 
--- ───────────────────────── Roles ─────────────────────────
--- Existing users all become 'student' (the column default). Users cannot write profiles at all
--- (see 002), so nobody can grant themselves a role. Change roles ONLY from the SQL Editor
--- (or a future server-only admin tool), e.g.:
---   update public.profiles set role = 'moderator' where email = 'someone@college.edu';
 alter table public.profiles add column if not exists role text not null default 'student';
 do $$ begin
   if not exists (select 1 from pg_constraint where conname = 'profiles_role_check') then
@@ -80,9 +62,7 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.user_role() from public, anon;
 grant execute on function public.user_role() to authenticated;
--- Future moderation policies can use:  using (public.user_role() in ('moderator','admin'))
 
--- ───────────────────────── Indexes for paginated / filtered queries ─────────────────────────
 create index if not exists items_status_created on public.items (status, created_at desc);
 create index if not exists items_category on public.items (category);
 create index if not exists items_price on public.items (price);
@@ -92,7 +72,6 @@ create index if not exists conversations_seller on public.conversations (seller_
 create index if not exists messages_conv_time on public.messages (conversation_id, created_at);
 create index if not exists wishlists_user_time on public.wishlists (user_id, created_at desc);
 
--- ───────────────────────── Realtime (RLS still decides who receives what) ─────────────────────────
 do $$ begin
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime'
                  and schemaname = 'public' and tablename = 'messages') then
@@ -103,9 +82,5 @@ do $$ begin
     alter publication supabase_realtime add table public.conversations;
   end if;
 end $$;
-
--- ───────────────────────── OPTIONAL: public browsing (V1 required login) ─────────────────────────
--- Only if you set REQUIRE_LOGIN_TO_BROWSE=false in the app. Contact details stay private either way.
--- create policy "anyone can browse" on public.items for select to anon using (true);
 
 commit;

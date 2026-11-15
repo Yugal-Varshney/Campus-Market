@@ -12,7 +12,6 @@ import { safely } from '@/lib/safe-action';
 
 const QUICK_MESSAGES = ['Is this still available?', 'Can we meet on campus?', 'Is the price negotiable?'];
 
-/** Owner controls or buyer actions. These checks are UX only — RLS enforces them in the database. */
 export default function SellerPanel({ item, isOwner, wishlisted, hasConversations = false, share = null }: { item: Listing; isOwner: boolean; wishlisted: boolean; hasConversations?: boolean; share?: { conversationId: number; status: ContactShareStatus } | null }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -32,13 +31,12 @@ export default function SellerPanel({ item, isOwner, wishlisted, hasConversation
     });
   };
 
-  // Opens (or finds) the chat and sends a ready-made first message, so a buyer can reach out in one tap.
   const quickMessage = (text: string) => {
     setError('');
     start(async () => {
       const r = await safely(() => startConversation(item.id));
       if (!r.conversationId) { setError(r.error ?? 'Could not start a chat.'); return; }
-      await safely(() => sendMessage(r.conversationId as number, text)); // if this fails the chat still opens and the buyer can type it there
+      await safely(() => sendMessage(r.conversationId as number, text));
       router.push(`/messages?c=${r.conversationId}`);
     });
   };
@@ -51,7 +49,7 @@ export default function SellerPanel({ item, isOwner, wishlisted, hasConversation
           {done ? `This listing is marked ${item.status}. Buyers can still see it but can't contact you.` : `Once it's ${doneStatus}, mark it so buyers know.`}
         </p>
         {hasConversations && (
-          <p className="owner-hint">This listing has conversations, so it can&apos;t be deleted. Mark it as sold or rented instead — your chats stay intact.</p>
+          <p className="owner-hint">This listing has conversations, so it can&apos;t be deleted. Mark it as sold or rented instead - your chats stay intact.</p>
         )}
         <div className="owner-actions">
           {done ? (

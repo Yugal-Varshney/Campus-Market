@@ -12,11 +12,9 @@ export interface SavedSearch {
   notify: boolean;
   createdAt: string;
   lastCheckedAt: string;
-  /** New matching listings since the student last looked. 0 when alerts are off. */
   newCount: number;
 }
 
-/** The signed-in student's saved searches, newest first, each with its number of new matches. */
 export async function getSavedSearches(userId: string): Promise<SavedSearch[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -38,7 +36,6 @@ export async function getSavedSearches(userId: string): Promise<SavedSearch[]> {
   );
 }
 
-/** Total new matches across the searches that have alerts on, for the navbar badge. Looks at the five newest and never throws. */
 export async function getAlertCount(userId: string): Promise<number> {
   try {
     const supabase = await createClient();
@@ -67,7 +64,6 @@ export async function isSearchSaved(query: string): Promise<boolean> {
   }
 }
 
-/** Searches several students have saved (get_popular_searches, migration 012). Empty on any problem. */
 export async function getPopularSearches(limit = 5): Promise<{ query: string; searchers: number }[]> {
   try {
     const supabase = await createClient();

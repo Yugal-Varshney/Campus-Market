@@ -5,10 +5,8 @@ import { friendlyDbError } from '@/lib/errors';
 import { ITEM_COLUMNS, toListing } from './mappers';
 import type { Listing, ListingQuery, Paginated, SellerContact, WishlistItem } from '@/types';
 
-/** Escape characters that have meaning inside a PostgREST `or()` filter / LIKE pattern. */
 const cleanSearch = (q: string) => q.replace(/[%_\\,()*"']/g, ' ').replace(/\s+/g, ' ').trim();
 
-/** Database-level search / filter / sort / pagination. Returns one page + the total count. */
 export async function getListings(q: ListingQuery): Promise<Paginated<Listing>> {
   const supabase = await createClient();
   let query = supabase.from('items').select(ITEM_COLUMNS, { count: 'exact' });
@@ -49,14 +47,12 @@ export async function getMyListings(userId: string): Promise<Listing[]> {
   return (data ?? []).map(toListing);
 }
 
-/** The signed-in user's wishlist item ids (for heart state on cards). */
 export async function getWishlistIds(userId: string): Promise<number[]> {
   const supabase = await createClient();
   const { data } = await supabase.from('wishlists').select('item_id').eq('user_id', userId);
   return (data ?? []).map((r) => r.item_id);
 }
 
-/** Count saved items without transferring every wishlist row to the server. */
 export async function getWishlistCount(userId: string): Promise<number> {
   const supabase = await createClient();
   const { count, error } = await supabase
@@ -82,18 +78,15 @@ export async function getWishlist(userId: string): Promise<WishlistItem[]> {
   return out;
 }
 
-/** Seller contact via the security-definer get_contact() RPC — only reachable when signed in. */
 export async function getSellerContact(itemId: number): Promise<SellerContact | { error: string }> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('get_contact', { p_item_id: itemId });
-  // Migration 009 rate limits raise 'RATE_LIMIT: ...'; the old V2 'Too many' text no longer exists.
   if (error) return { error: friendlyDbError(error.message, 'Contact details are unavailable right now.') };
   const row = data?.[0];
   if (!row) return { error: 'Contact details are unavailable for this listing.' };
   return { name: row.name, email: row.email, phone: row.phone };
 }
 
-/** How many conversations exist on a listing (UX only; the database trigger is what blocks deletion). */
 export async function countConversations(itemId: number): Promise<number> {
   const supabase = await createClient();
   const { count } = await supabase
@@ -103,11 +96,6 @@ export async function countConversations(itemId: number): Promise<number> {
   return count ?? 0;
 }
 
-/**
- * How many available listings that match this search were posted after `since` (head-only count, no rows).
- * Used for saved-search alerts. The student's own listings are left out so posting something never alerts you about yourself.
- * The filters mirror getListings(); keep the two in step.
- */
 export async function countNewListings(q: ListingQuery, since: string, excludeSellerId?: string): Promise<number> {
   const supabase = await createClient();
   let query = supabase.from('items').select('id', { count: 'exact', head: true }).eq('status', 'active').gt('created_at', since);
@@ -124,7 +112,6 @@ export async function countNewListings(q: ListingQuery, since: string, excludeSe
   return error ? 0 : count ?? 0;
 }
 
-/** Listings students are saving and messaging about right now (get_trending_items, migration 012). Empty on any problem. */
 export async function getTrendingListings(limit = 4): Promise<Listing[]> {
   try {
     const supabase = await createClient();

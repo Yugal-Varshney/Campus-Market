@@ -9,20 +9,13 @@ type MessageToast = { conversationId: number; itemTitle: string };
 
 const MAX_TOASTS = 3;
 const SHOW_MS = 7000;
-const COUNT_PREFIX = /^\(\d+\+?\)\s/; // "(3) " in front of the page title
+const COUNT_PREFIX = /^\(\d+\+?\)\s/;
 
-/**
- * Two ways to notice a new message while you are elsewhere on the site:
- *   1. the browser tab title gets an unread count, e.g. "(2) Campus Market", which also shows when the tab is in the background;
- *   2. a small toast "New message about <listing>" that links straight to the chat.
- * No toast when you are already looking at that chat, and none while the tab is hidden (the title covers that).
- */
 export default function NewMessageAlerts({ userId, initial }: { userId: string; initial: number }) {
   const count = useUnreadCount(userId, initial);
   const [toasts, setToasts] = useState<MessageToast[]>([]);
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
 
-  // ── 1. tab title ────────────────────────────────────────────────────────────
   useEffect(() => {
     const prefix = count > 0 ? `(${count > 99 ? '99+' : count}) ` : '';
     const apply = () => {
@@ -30,7 +23,6 @@ export default function NewMessageAlerts({ userId, initial }: { userId: string; 
       if (document.title !== next) document.title = next;
     };
     apply();
-    // Next.js rewrites the title on every page change, so re-apply the prefix whenever <head> changes.
     const observer = new MutationObserver(apply);
     observer.observe(document.head, { childList: true, subtree: true, characterData: true });
     return () => {
@@ -39,7 +31,6 @@ export default function NewMessageAlerts({ userId, initial }: { userId: string; 
     };
   }, [count]);
 
-  // ── 2. toast ────────────────────────────────────────────────────────────────
   const dismiss = useCallback((conversationId: number) => {
     clearTimeout(timers.current.get(conversationId));
     timers.current.delete(conversationId);
@@ -61,7 +52,6 @@ export default function NewMessageAlerts({ userId, initial }: { userId: string; 
         const { data } = await supabase.from('conversations').select('items (title)').eq('id', m.conversation_id).maybeSingle();
         const itemTitle = data?.items?.title ?? 'your listing';
 
-        // One toast per chat: a burst of messages replaces it instead of stacking.
         setToasts((prev) => [...prev.filter((t) => t.conversationId !== m.conversation_id), { conversationId: m.conversation_id, itemTitle }].slice(-MAX_TOASTS));
         clearTimeout(timers.current.get(m.conversation_id));
         timers.current.set(m.conversation_id, setTimeout(() => dismiss(m.conversation_id), SHOW_MS));

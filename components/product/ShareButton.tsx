@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 
-/** Share a listing: the phone's share sheet when there is one, otherwise copy link + WhatsApp. The message itself carries the title and price. */
 export default function ShareButton({ path, title, price }: { path: string; title: string; price: string }) {
   const [canNative, setCanNative] = useState(false);
   const [origin, setOrigin] = useState('');

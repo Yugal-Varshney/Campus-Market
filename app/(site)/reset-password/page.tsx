@@ -6,7 +6,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 export const metadata: Metadata = { title: 'New password' };
 
 export default async function ResetPasswordPage() {
-  const user = await getCurrentUser(); // set by /auth/callback after the emailed link is opened
+  const user = await getCurrentUser();
   return (
     <div className="auth-shell">
       <h1 className="font-display">NEW PASSWORD</h1>

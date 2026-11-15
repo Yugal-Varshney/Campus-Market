@@ -1,4 +1,3 @@
-/** Input rules for the staff screens. The database enforces the same limits; these give clear messages first. */
 
 export const REASON_MIN = 3;
 export const REASON_MAX = 1000;
@@ -18,11 +17,6 @@ export const SUSPENSION_CHOICES: { value: string; label: string; adminOnly?: boo
   { value: 'indefinite', label: 'Until further notice', adminOnly: true },
 ];
 
-/**
- * Suspension end date for a dropdown choice. Moderators are limited to 7 days by the database. The end is set a few
- * minutes short of the exact day count so a small clock difference between this server and the database can never
- * push a 7-day suspension over the limit.
- */
 export function suspensionUntil(choice: unknown, role: 'moderator' | 'admin', now: Date = new Date()): { until: string | null } | { error: string } {
   if (choice === 'indefinite') {
     return role === 'admin' ? { until: null } : { error: 'Only an admin can suspend without an end date.' };
@@ -38,7 +32,6 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.test(v);
 export const isId = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0;
 
-/** Category rules from migration 008: name 2-40 characters, slug a-z / 0-9 / "-" (2-40), description up to 200. */
 export function slugify(name: string): string {
   return name
     .toLowerCase()

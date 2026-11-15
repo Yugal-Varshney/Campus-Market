@@ -38,7 +38,7 @@ export default function RegisterForm() {
       <div>
         <label className="field-label" htmlFor="register-email">College Email</label>
         <input id="register-email" name="email" type="email" className="field-input" placeholder="alex@college.edu" maxLength={255} autoComplete="email" required aria-describedby="email-hint" />
-        <p id="email-hint" className="field-hint">Must end in .edu or .ac.xx (e.g. .ac.in). We email you a confirmation link — it keeps the marketplace student-only.</p>
+        <p id="email-hint" className="field-hint">Must end in .edu or .ac.xx (e.g. .ac.in). We email you a confirmation link - it keeps the marketplace student-only.</p>
       </div>
       <div>
         <label className="field-label" htmlFor="register-password">Password</label>

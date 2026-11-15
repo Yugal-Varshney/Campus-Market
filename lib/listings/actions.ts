@@ -12,7 +12,6 @@ import { removeImage, storagePathFromUrl, uploadListingImage } from './storage';
 import { getSellerContact } from './queries';
 import type { ActionState, ListingStatus, SellerContact } from '@/types';
 
-/** Keeps the message and, when known, which input it belongs to, so the form can mark that input. */
 const fail = (error?: string, field?: string): ActionState => ({ error, fieldErrors: field && error ? { [field]: error } : undefined });
 
 const str = (fd: FormData, k: string) => (typeof fd.get(k) === 'string' ? (fd.get(k) as string) : '');
@@ -43,7 +42,7 @@ export async function createListing(_: ActionState, fd: FormData): Promise<Actio
   const { value, error, field } = readListing(fd, categories.map((c) => c.value));
   if (!value) return fail(error, field);
   const file = photo(fd);
-  if (!file) return fail('Add a photo — real photos get far more replies.', 'photo');
+  if (!file) return fail('Add a photo - real photos get far more replies.', 'photo');
 
   const verdict = await moderateListing(value);
   if (verdict.decision === 'reject') return { error: 'This listing cannot be posted.' };
@@ -52,7 +51,6 @@ export async function createListing(_: ActionState, fd: FormData): Promise<Actio
   if (!up.url) return { error: up.error };
 
   const supabase = await createClient();
-  // seller_id / seller_name / status / created_at are forced by the DB trigger, not by this payload.
   const { data: item, error: insertErr } = await supabase
     .from('items')
     .insert({
@@ -70,7 +68,6 @@ export async function createListing(_: ActionState, fd: FormData): Promise<Actio
     .single();
   if (insertErr || !item) {
     await removeImage(up.path ?? null);
-    // Rate limits and account restrictions come back as coded messages (migrations 006/009).
     return { error: friendlyDbError(insertErr?.message, 'Could not post your listing. Please check the fields and try again.') };
   }
 
@@ -94,7 +91,6 @@ export async function updateListing(id: number, _: ActionState, fd: FormData): P
   const { data: current } = await supabase.from('items').select('image_url, status, seller_id, category').eq('id', id).maybeSingle();
   if (!current || current.seller_id !== user.id) return { error: 'Listing not found.' };
   if (current.status !== 'active') return { error: 'Mark the item available again before editing it.' };
-  // The listing's own category stays valid even if an admin has since disabled it.
   const categories = await getCategories();
   const { value, error, field } = readListing(fd, [...categories.map((c) => c.value), current.category]);
   if (!value) return fail(error, field);
@@ -128,8 +124,6 @@ export async function updateListing(id: number, _: ActionState, fd: FormData): P
     await removeImage(newPath ?? null);
     return { error: friendlyDbError(upErr.message, 'Could not save your changes.') };
   }
-  // The listing row is already saved at this point, so a phone-number failure must be reported
-  // (it used to be ignored, which made phone edits fail silently).
   const { data: phoneRows, error: phoneErr } = await supabase
     .from('item_private')
     .update({ contact_phone: value.phone })
@@ -151,12 +145,9 @@ export async function updateListing(id: number, _: ActionState, fd: FormData): P
   redirect(`/marketplace/${id}?updated=1`);
 }
 
-/** Status changes are enforced by RLS + CHECK constraints; this just reports the outcome. */
 export async function setListingStatus(id: number, status: ListingStatus): Promise<ActionState> {
   const user = await getCurrentUser();
   if (!user) return { error: 'You need to sign in to continue.' };
-  // 'inactive' exists in the database (migration 006) but the app has no screen for it yet;
-  // reject anything the UI never sends instead of trusting the client-supplied value.
   if (status !== 'active' && status !== 'sold' && status !== 'rented') return { error: 'That status is not allowed for this listing.' };
   const supabase = await createClient();
   const { data, error } = await supabase.from('items').update({ status }).eq('id', id).select('id');
@@ -174,9 +165,8 @@ export async function deleteListing(id: number): Promise<ActionState> {
   const { data: row } = await supabase.from('items').select('image_url').eq('id', id).eq('seller_id', user.id).maybeSingle();
   if (!row) return { error: 'Listing not found.' };
   const { data, error } = await supabase.from('items').delete().eq('id', id).select('id');
-  // The database refuses to delete a listing that has conversations (restrict_violation 23001).
   if (error?.code === '23001' || /conversations/i.test(error?.message ?? ''))
-    return { error: "This listing has conversations, so it can't be deleted. Mark it as sold or rented instead — your chats stay intact." };
+    return { error: "This listing has conversations, so it can't be deleted. Mark it as sold or rented instead - your chats stay intact." };
   if (error || !data?.length) return { error: friendlyDbError(error?.message, 'Could not delete this listing.') };
   await removeImage(storagePathFromUrl(row.image_url, user.id));
   revalidatePath('/marketplace');

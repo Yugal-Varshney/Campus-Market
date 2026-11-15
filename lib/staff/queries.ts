@@ -23,7 +23,6 @@ export const parsePage = (v: unknown): number => { const n = Number(v); return N
 
 const REPORT_COLUMNS = 'id, reporter_id, reported_user_id, listing_id, reason, description, status, reviewed_by, reviewed_at, target_snapshot, created_at';
 
-/** Report queue. Staff read access comes from the "reports staff read all" policy (migration 007). */
 export async function getReports(filter: ReportFilter, page: number): Promise<{ rows: ReportRow[]; total: number }> {
   const supabase = await createClient();
   let q = supabase.from('reports').select(REPORT_COLUMNS, { count: 'exact' });
@@ -79,7 +78,6 @@ export async function getReportDetail(id: number): Promise<ReportDetail | null> 
   };
 }
 
-/** Admin only (the database function refuses everyone else). */
 export async function searchUsers(query: string): Promise<StaffUser[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('admin_search_users', { p_query: query.slice(0, 100), p_limit: 20, p_offset: 0 });
@@ -107,7 +105,6 @@ export async function getSecurityEvents(page: number): Promise<{ rows: SecurityE
 
 export type CategoryRow = Database['public']['Tables']['categories']['Row'] & { listings: number };
 
-/** Every category (including disabled ones) with the number of listings that use it. Admin screen only. */
 export async function getAllCategories(): Promise<CategoryRow[]> {
   const supabase = await createClient();
   const [cats, items] = await Promise.all([

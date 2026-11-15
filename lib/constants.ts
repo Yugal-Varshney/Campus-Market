@@ -14,7 +14,6 @@ export const CONDITIONS: { value: Condition; label: string }[] = [
   { value: 'fair', label: 'Fair' },
 ];
 
-/** Rental price units. `max` is the largest "longest rental" the form accepts for that unit (the database allows 1-365). */
 export const RENT_UNITS: { value: RentUnit; label: string; plural: string; max: number }[] = [
   { value: 'day', label: 'Day', plural: 'days', max: 365 },
   { value: 'week', label: 'Week', plural: 'weeks', max: 52 },
@@ -40,12 +39,11 @@ export const SORTS: { value: SortKey; label: string }[] = [
 export const PAGE_SIZE = 20;
 export const MIN_PRICE = 1;
 export const MAX_PRICE = 100000;
-export const PRICE_SLIDER_MAX = 5000; // slider range only; "5,000+" means no upper cap
-export const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // stays under Vercel's 4.5 MB request limit
+export const PRICE_SLIDER_MAX = 5000;
+export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 export const IMAGE_BUCKET = 'item-images';
 export const MIN_PASSWORD_LENGTH = 8;
 
-/** Display name for a category slug: the database name when known, else the built-in list, else the slug itself. */
 export const categoryLabel = (v: string, names?: Record<string, string>) => names?.[v] ?? CATEGORIES.find((c) => c.value === v)?.label ?? v;
 export const conditionLabel = (v: string) => CONDITIONS.find((c) => c.value === v)?.label ?? v;

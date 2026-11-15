@@ -3,7 +3,6 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/types/database';
 import { AUTH_PAGES, isProtectedPath } from './paths';
 
-/** Refreshes the auth cookie on every request and redirects based on sign-in state. */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -22,7 +21,6 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // getUser() validates the token with Supabase Auth (getSession() would trust the cookie).
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
   const requireLoginToBrowse = process.env.REQUIRE_LOGIN_TO_BROWSE !== 'false';

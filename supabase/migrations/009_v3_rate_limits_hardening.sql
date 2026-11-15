@@ -1,32 +1,5 @@
--- 009_v3_rate_limits_hardening.sql — Campus Market V3: abuse limits + reserved display names.
---
--- WHAT THIS CHANGES:
---   ADDITIVE: BEFORE INSERT limit triggers on items / conversations / messages; reserved-name functions
---     and a BEFORE INSERT trigger on auth.users; a manual cleanup function.
---   ALTERS (policy text only, same policy names): the two V2 storage policies "upload to own folder" and
---     "delete own photos" on storage.objects now ALSO require an active (non-suspended) account, and
---     uploads additionally pass the photo_upload limit. No other storage policy is touched.
---   Existing data is not modified. Idempotent; one transaction. Requires 005 and 006.
---   Needs ONLY policy DDL on storage.objects (verified by a rolled-back probe before anything changes).
---   Migrations 005-008 do not touch the storage schema at all.
---
--- HOW EACH LIMIT IS CALCULATED (see rate_limit_check in 005): user = auth.uid() from the signed JWT;
--- time = now() on the database server; the window slides: count of ACCEPTED events by that user for that
--- action with created_at > now() - window. A request that would exceed any window is rejected with
--- SQLSTATE 54000 'RATE_LIMIT: ...' and records nothing. A per-(user,action) advisory lock makes
--- concurrent requests exact. Rules live in public.rate_limit_rules (edit there; no redeploy needed):
---   listing_create 5/hour + 20/day · chat_start 20/day · message_send 60/10 min · photo_upload 30/hour
---   report_create 3/hour + 10/day (007) · contact_lookup 40/hour (006) · moderator_action 200/hour (staff RPCs)
--- Client timestamps and client-supplied user ids are never consulted.
--- SECURITY DEFINER protections: search_path = '', actor = auth.uid(), EXECUTE revoked from PUBLIC/anon/
--- authenticated for internal functions. The only API-callable additions are two harmless pure/caller-only
--- helpers (is_display_name_reserved, v3_storage_upload_check — see their comments).
--- Reserved names: comparison ignores case, spaces, punctuation and simple look-alike digits/symbols
--- (0->o 1->i 3->e 4->a 5->s 7->t @->a $->s). It does NOT handle non-Latin look-alike letters.
-
 begin;
 
--- ───────────────────────── PRE-FLIGHT GATE ─────────────────────────
 do $$
 declare bad text;
 begin
@@ -48,14 +21,6 @@ begin
   end if;
 end $$;
 
--- PRE-FLIGHT PROBE: can this role create / alter / drop policies on storage.objects? (all 009 needs there)
--- On Supabase, storage.objects is owned by supabase_storage_admin and the SQL Editor role `postgres` is NOT
--- the owner and NOT a member of that role. It can still manage policies because the platform extension
--- `supautils` delegates exactly CREATE POLICY / ALTER POLICY / DROP POLICY on storage.objects to `postgres`
--- (supautils.policy_grants). A plain "is owner?" test (pg_has_role) therefore gives a false alarm there, so
--- instead of guessing we TRY the real statements inside a sub-transaction that is ALWAYS rolled back
--- (it ends by raising a private exception). Nothing is left behind. If the role lacks the privilege the
--- error is caught and 009 aborts BEFORE changing anything. No ownership or role membership is ever altered.
 do $$
 begin
   begin
@@ -72,7 +37,6 @@ begin
   end;
 end $$;
 
--- ───────────────────────── limit triggers (all definer, signed-in callers only) ─────────────────────────
 create or replace function public.items_v3_limits() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -100,9 +64,6 @@ end $$;
 drop trigger if exists messages_v3_limits_trg on public.messages;
 create trigger messages_v3_limits_trg before insert on public.messages for each row execute function public.messages_v3_limits();
 
--- ───────────────────────── photo uploads: suspended users + 30/hour ─────────────────────────
--- Callable by signed-in users (policies run as the caller). It only counts/limits the CALLER's own
--- uploads and returns true; calling it by hand can at most use up your own quota.
 create or replace function public.v3_storage_upload_check() returns boolean
 language plpgsql volatile security definer set search_path = '' as $$
 begin
@@ -123,18 +84,14 @@ alter policy "delete own photos" on storage.objects
          and (storage.foldername(name))[1] = auth.uid()::text
          and (select public.account_is_active()));
 
--- ───────────────────────── reserved display names ─────────────────────────
 create or replace function public.v3_normalize_name(p_name text) returns text
 language sql immutable set search_path = '' as $$
   select regexp_replace(translate(lower(coalesce(p_name, '')), '013457@$', 'oieastas'), '[^a-z0-9]', '', 'g')
 $$;
 
--- Pure function (no table access; SECURITY DEFINER only so anon may call it without being able to run the
--- internal normaliser): lets the sign-up page give a friendly message before calling Auth.
 create or replace function public.is_display_name_reserved(p_name text) returns boolean
 language plpgsql immutable security definer set search_path = '' as $$
 declare
-  -- two views of the name: plain (keeps real digits, e.g. "admin1") and look-alike-normalised ("4dm1n" -> "admin")
   variants text[] := array[regexp_replace(lower(coalesce(p_name, '')), '[^a-z0-9]', '', 'g'), public.v3_normalize_name(p_name)];
   n text; v text; prev text; tok text;
   tokens text[] := array['administrator', 'campusmarket', 'moderator', 'support', 'system', 'admin'];
@@ -147,7 +104,6 @@ begin
       foreach tok in array tokens loop v := replace(v, tok, ''); end loop;
       exit when v = prev;
     end loop;
-    -- reserved when the name is made ONLY of reserved words (optionally followed by digits)
     if v <> n and (v = '' or v ~ '^[0-9]+$') then return true; end if;
   end loop;
   return false;
@@ -169,11 +125,6 @@ drop trigger if exists reserved_display_name_only on auth.users;
 create trigger reserved_display_name_only before insert on auth.users
   for each row execute function public.check_reserved_display_name();
 
--- ───────────────────────── manual cleanup (not executable via the API) ─────────────────────────
--- Run from the SQL Editor now and then (or schedule with pg_cron if you enable it):
---   select public.v3_purge_old_events();
--- Rate-limit events are also trimmed per user on every check; this removes idle users' leftovers and the
--- V2 contact_requests rows (the V2 counter table, no longer written since 006).
 create or replace function public.v3_purge_old_events(p_older_than interval default interval '2 days') returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare a bigint; b bigint := 0;

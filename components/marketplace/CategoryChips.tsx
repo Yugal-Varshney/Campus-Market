@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { marketplaceHref } from '@/lib/listings/search-params';
 import type { CategoryOption } from '@/types';
 
-/** One-tap category switcher above the results. Keeps the search text, price, sort and sold setting; resets the page. */
 export default function CategoryChips({ categories, active, params }: { categories: CategoryOption[]; active: string[]; params: Record<string, string | undefined> }) {
   const base = { ...params, category: undefined, page: undefined };
   return (
