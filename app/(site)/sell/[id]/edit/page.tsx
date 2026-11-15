@@ -13,9 +13,8 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
   const { id: raw } = await params;
   const id = /^\d+$/.test(raw) ? Number(raw) : -1;
   const [user, item] = await Promise.all([getCurrentUser(), getListing(id)]);
-  if (!user || !item || item.sellerId !== user.id) notFound(); // RLS enforces ownership on save too
+  if (!user || !item || item.sellerId !== user.id) notFound();
   const [activeCategories, names] = await Promise.all([getCategories(), getCategoryNames()]);
-  // Keep the listing's own category selectable even if an admin has disabled it since.
   const categories = activeCategories.some((c) => c.value === item.category)
     ? activeCategories
     : [...activeCategories, { value: item.category, label: names[item.category] ?? item.category }];

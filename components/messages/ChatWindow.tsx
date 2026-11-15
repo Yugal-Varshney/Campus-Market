@@ -19,7 +19,6 @@ interface Props {
   isBuyer: boolean; otherUserId: string; initialShare: ContactShareStatus | null;
 }
 
-/** Messages arrive over Supabase Realtime (postgres_changes) — no polling. RLS decides who receives each row. */
 export default function ChatWindow({ conversationId, userId, title, otherParty, itemId, initialMessages, isBuyer, otherUserId, initialShare }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [draft, setDraft] = useState('');
@@ -32,7 +31,6 @@ export default function ChatWindow({ conversationId, userId, title, otherParty, 
 
   const add = (m: Message) => setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
 
-  // Tell the database this chat has been seen, then make the unread badges re-count.
   const markRead = useCallback(() => {
     createClient()
       .rpc('mark_conversation_read', { p_conversation_id: conversationId })
@@ -40,8 +38,8 @@ export default function ChatWindow({ conversationId, userId, title, otherParty, 
   }, [conversationId]);
 
   useEffect(() => {
-    markRead(); // opening the chat counts as reading it
-    const onVisible = () => { if (document.visibilityState === 'visible') markRead(); }; // came back to this tab
+    markRead();
+    const onVisible = () => { if (document.visibilityState === 'visible') markRead(); };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [markRead]);
@@ -54,8 +52,8 @@ export default function ChatWindow({ conversationId, userId, title, otherParty, 
         (payload) => {
           const r = payload.new as { id: number; conversation_id: number; sender_id: string; body: string; created_at: string };
           add({ id: r.id, conversationId: r.conversation_id, senderId: r.sender_id, body: r.body, createdAt: r.created_at });
-          setTick((t) => t + 1); // a new message is a good moment to re-read the contact-request state
-          if (r.sender_id !== userId && document.visibilityState === 'visible') markRead(); // they are looking at it right now
+          setTick((t) => t + 1);
+          if (r.sender_id !== userId && document.visibilityState === 'visible') markRead();
         })
       .subscribe((status) => setLive(status !== 'CHANNEL_ERROR' && status !== 'TIMED_OUT'));
     return () => { supabase.removeChannel(channel); };
@@ -89,7 +87,7 @@ export default function ChatWindow({ conversationId, userId, title, otherParty, 
         {messages.length === 0
           ? (
             <div className="chat-empty">
-              <p>Say hi — ask about pickup, condition, or a better price.</p>
+              <p>Say hi - ask about pickup, condition, or a better price.</p>
               <div className="quick-messages-row" role="group" aria-label="Suggested messages">
                 {(isBuyer ? BUYER_STARTERS : SELLER_STARTERS).map((q) => (
                   <button key={q} type="button" className="chip" onClick={() => { setDraft(q); inputRef.current?.focus(); }}>{q}</button>
@@ -99,7 +97,7 @@ export default function ChatWindow({ conversationId, userId, title, otherParty, 
           )
           : messages.map((m) => <MessageBubble key={m.id} message={m} mine={m.senderId === userId} />)}
       </div>
-      {!live && <p className="field-hint" role="status" style={{ padding: '0 1rem' }}>Live updates are unavailable — refresh to see new messages.</p>}
+      {!live && <p className="field-hint" role="status" style={{ padding: '0 1rem' }}>Live updates are unavailable - refresh to see new messages.</p>}
       {error && <p className="error-box" role="alert">{error}</p>}
       <form className="chat-input-row" onSubmit={submit}>
         <input ref={inputRef} type="text" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Ask about pickup, condition, bargaining…" maxLength={1000} aria-label="Message" />

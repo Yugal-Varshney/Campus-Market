@@ -5,7 +5,6 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { friendlyDbError, knownDbError } from '@/lib/errors';
 import type { Message } from '@/types';
 
-/** Find-or-create the buyer's conversation for a listing. The DB trigger sets seller + names. */
 export async function startConversation(itemId: number): Promise<{ conversationId?: number; error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: 'You need to sign in to continue.' };
@@ -38,7 +37,6 @@ export async function sendMessage(conversationId: number, body: string): Promise
   const user = await getCurrentUser();
   if (!user) return { error: 'You need to sign in to continue.' };
   const supabase = await createClient();
-  // RLS: sender must be the signed-in user AND a participant of the conversation.
   const { data, error } = await supabase
     .from('messages')
     .insert({ conversation_id: conversationId, sender_id: user.id, body: text })

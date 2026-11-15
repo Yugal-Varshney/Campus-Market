@@ -1,39 +1,5 @@
--- 006_v3_accounts_and_moderation.sql — Campus Market V3
--- Account status (active/suspended/banned), listing moderation state, staff actions, enforcement.
---
--- WHAT THIS CHANGES (read before running):
---  ADDITIVE: new columns on profiles (account status, warnings) and items (moderation_*); new table
---    moderation_actions (append-only); new helper/staff functions; new triggers; new policies.
---    Existing rows are NOT modified: every existing profile becomes 'active', every existing listing
---    'approved' (column defaults only).
---  REPLACED / DESTRUCTIVE-LOOKING (no data is deleted or rewritten):
---    1. DROPS the V2 policy "signed-in can browse" on items and replaces it with moderation-aware
---       policies (approved listings for everyone, own listings for the owner, all for staff).
---    2. DROPS the old CHECK constraint on items.status (active/sold/rented) and adds a SUPERSET
---       (+ 'inactive'). Every existing value stays valid.
---    3. Re-creates get_contact(bigint) (same signature) so hidden listings / suspended users are refused.
---    4. Adds RESTRICTIVE policies on items, item_private, wishlists, conversations, messages: banned
---       users read nothing, only 'active' accounts write (suspended = read-only). V2 permissive
---       policies are untouched.
---  Idempotent; one transaction. Run order: 004 -> 005 -> 006 -> 007 -> 008 -> 009.
---
--- SECURITY DEFINER PROTECTIONS (every definer function below):
---   * SET search_path = '' and fully schema-qualified references (no reliance on caller search_path)
---   * actor = auth.uid() ONLY; no function takes an actor/role/created_by argument
---   * the caller's role is re-read from public.profiles inside the function; suspended/banned staff are
---     treated as students (they lose all staff power immediately)
---   * target restrictions inside the function: nobody acts on themselves; moderators act on students only
---   * EXECUTE: revoked from PUBLIC/anon; granted to `authenticated` only for the RPCs and the four
---     tiny caller-state helpers; revoked from everyone for internal helpers and trigger functions
---   * state change + moderation_actions row + audit_logs row happen in ONE transaction
---   * the profiles/items backstop triggers log any role/status/moderation change made OUTSIDE these
---     functions (SQL Editor, service role) as source='direct_sql'
--- Marketplace state (items.status) and moderation state (items.moderation_status) are independent:
--- hiding never changes status, marking sold never changes moderation_status.
-
 begin;
 
--- ───────────────────────── PRE-FLIGHT GATE ─────────────────────────
 do $$
 declare bad text; n integer;
 begin
@@ -59,7 +25,6 @@ begin
                    'public.conversations'::regclass,'public.messages'::regclass,'public.profiles'::regclass)
      and not c.relrowsecurity;
   if bad is not null then raise exception 'MIGRATION 006 ABORTED - nothing was changed. RLS is OFF on: %', bad; end if;
-  -- an extra permissive SELECT policy on items would keep hidden listings visible
   select string_agg('"' || policyname || '"', ', ') into bad from pg_policies
    where schemaname = 'public' and tablename = 'items' and permissive = 'PERMISSIVE' and cmd in ('SELECT','ALL')
      and policyname not in ('signed-in can browse','v3 browse approved','v3 owner reads own listings','v3 staff read all listings');
@@ -76,7 +41,6 @@ begin
   end if;
 end $$;
 
--- ───────────────────────── profiles: account status ─────────────────────────
 alter table public.profiles
   add column if not exists account_status     text not null default 'active',
   add column if not exists suspended_until    timestamptz,
@@ -96,7 +60,6 @@ do $$ begin
   end if;
 end $$;
 
--- ───────────────────────── helpers (state of the CALLER only) ─────────────────────────
 create or replace function public.v3_effective_status(p_status text, p_until timestamptz) returns text
 language sql stable set search_path = '' as $$
   select case when p_status = 'banned' then 'banned'
@@ -114,7 +77,6 @@ language sql stable security definer set search_path = '' as $$
   select coalesce((select public.v3_effective_status(p.account_status, p.suspended_until) <> 'banned'
                    from public.profiles p where p.id = auth.uid()), true)
 $$;
--- Role the caller may ACT with: suspended/banned accounts (and unknown users) count as 'student'.
 create or replace function public.acting_role() returns text
 language sql stable security definer set search_path = '' as $$
   select coalesce((select case when public.v3_effective_status(p.account_status, p.suspended_until) = 'active'
@@ -137,7 +99,6 @@ begin
   end if;
 end $$;
 
--- ───────────────────────── items: moderation columns + status superset ─────────────────────────
 alter table public.items
   add column if not exists moderation_status text not null default 'approved',
   add column if not exists moderated_by      uuid,
@@ -150,7 +111,6 @@ begin
     alter table public.items add constraint items_moderation_status_valid
       check (moderation_status in ('approved','pending','hidden','rejected'));
   end if;
-  -- REPLACES the old status CHECK by a superset that adds 'inactive' (no data change; gate verified it is found exactly once)
   for c in select conname from pg_constraint
             where conrelid = 'public.items'::regclass and contype = 'c'
               and pg_get_constraintdef(oid) ~ 'status = ANY \(ARRAY\[''active''::text, ''sold''::text, ''rented''::text\]\)' loop
@@ -162,7 +122,6 @@ begin
 end $$;
 create index if not exists items_moderation_status on public.items (moderation_status);
 
--- ───────────────────────── items: visibility policies (REPLACES "signed-in can browse") ─────────────────────────
 drop policy if exists "signed-in can browse" on public.items;
 drop policy if exists "v3 browse approved" on public.items;
 create policy "v3 browse approved" on public.items for select to authenticated
@@ -174,7 +133,6 @@ drop policy if exists "v3 staff read all listings" on public.items;
 create policy "v3 staff read all listings" on public.items for select to authenticated
   using ((select public.acting_role()) in ('moderator','admin'));
 
--- ───────────────────────── RESTRICTIVE policies: banned = no reads, suspended = read-only ─────────────────────────
 do $$
 declare t text; c text;
 begin
@@ -192,8 +150,6 @@ begin
   end loop;
 end $$;
 
--- ───────────────────────── items triggers ─────────────────────────
--- INSERT (definer): signed-in callers cannot choose moderation fields; suspended/banned cannot create.
 create or replace function public.items_v3_insert_guard() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -207,10 +163,6 @@ drop trigger if exists items_v3_insert_guard_trg on public.items;
 create trigger items_v3_insert_guard_trg before insert on public.items
   for each row execute function public.items_v3_insert_guard();
 
--- UPDATE (INVOKER on purpose): current_user is the role that issued the statement. Statements sent
--- through the API run as anon/authenticated; statements issued inside the staff definer functions run
--- as their owner. So an owner can NEVER change moderation columns or edit a hidden listing directly,
--- while staff functions can — and a client cannot fake current_user.
 create or replace function public.items_v3_guard() returns trigger
 language plpgsql set search_path = '' as $$
 begin
@@ -230,7 +182,6 @@ drop trigger if exists items_v3_guard_trg on public.items;
 create trigger items_v3_guard_trg before update on public.items
   for each row execute function public.items_v3_guard();
 
--- DELETE (definer, ALL roles): a hidden/rejected listing is evidence and can never be deleted.
 create or replace function public.items_v3_delete_guard() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -244,7 +195,6 @@ drop trigger if exists items_v3_delete_guard_trg on public.items;
 create trigger items_v3_delete_guard_trg before delete on public.items
   for each row execute function public.items_v3_delete_guard();
 
--- ───────────────────────── chats / messages / contact: hidden listings and suspended users ─────────────────────────
 create or replace function public.conversations_v3_guard() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -274,8 +224,6 @@ drop trigger if exists messages_v3_guard_trg on public.messages;
 create trigger messages_v3_guard_trg before insert on public.messages
   for each row execute function public.messages_v3_guard();
 
--- get_contact(): same signature/result as V2 + hidden listing = "not found", suspended/banned refused,
--- limit via the shared limiter (40/hour, same value as V2).
 create or replace function public.get_contact(p_item_id bigint)
 returns table (name text, email text, phone text)
 language plpgsql security definer set search_path = '' as $$
@@ -292,7 +240,6 @@ begin
       from public.items i left join public.item_private p on p.item_id = i.id where i.id = p_item_id;
 end $$;
 
--- ───────────────────────── moderation_actions (append-only) ─────────────────────────
 create table if not exists public.moderation_actions (
   id             bigint generated always as identity primary key,
   created_at     timestamptz not null default now(),
@@ -326,7 +273,6 @@ drop policy if exists "staff read moderation actions" on public.moderation_actio
 create policy "staff read moderation actions" on public.moderation_actions for select to authenticated
   using ((select public.acting_role()) in ('moderator','admin'));
 
--- read policies for the audit tables created in 005
 grant select on public.audit_logs, public.security_events to authenticated;
 drop policy if exists "admin reads all audit" on public.audit_logs;
 create policy "admin reads all audit" on public.audit_logs for select to authenticated
@@ -338,7 +284,6 @@ drop policy if exists "admin reads security events" on public.security_events;
 create policy "admin reads security events" on public.security_events for select to authenticated
   using ((select public.acting_role()) = 'admin');
 
--- ───────────────────────── internal helpers for the staff functions ─────────────────────────
 create or replace function public.v3_clean_reason(p_reason text, p_min integer default 3) returns text
 language plpgsql immutable set search_path = '' as $$
 declare v text := btrim(coalesce(p_reason, ''));
@@ -349,8 +294,6 @@ begin
   return v;
 end $$;
 
--- p_admin_only: admin required. p_write: marks the transaction as an audited RPC and applies the
--- moderator action limit. The caller's role comes from the database, never from the client.
 create or replace function public.v3_staff_guard(p_admin_only boolean default false, p_write boolean default true) returns text
 language plpgsql security definer set search_path = '' as $$
 declare v_role text;
@@ -415,7 +358,6 @@ begin
   return v_id;
 end $$;
 
--- ───────────────────────── staff RPCs: listings ─────────────────────────
 create or replace function public.staff_hide_listing(p_listing_id bigint, p_reason text, p_report_id bigint default null)
 returns bigint language plpgsql security definer set search_path = '' as $$
 declare v_role text; v_reason text; it record;
@@ -450,7 +392,6 @@ begin
                               jsonb_build_object('previous_moderation_status', it.moderation_status));
 end $$;
 
--- ───────────────────────── staff RPCs: users ─────────────────────────
 create or replace function public.staff_warn_user(p_user_id uuid, p_reason text, p_report_id bigint default null)
 returns bigint language plpgsql security definer set search_path = '' as $$
 declare v_role text; v_reason text; t record;
@@ -543,8 +484,6 @@ begin
   return public.v3_log_action('user_unbanned', 'USER_UNBANNED', p_user_id, null, null, v_reason, '{}'::jsonb);
 end $$;
 
--- Role changes: admin only, never on yourself (so nobody can promote or demote themselves), and the
--- last active admin is additionally protected by a trigger below.
 create or replace function public.admin_set_role(p_user_id uuid, p_new_role text, p_reason text)
 returns bigint language plpgsql security definer set search_path = '' as $$
 declare v_role text; v_reason text; t record; v_id bigint;
@@ -566,7 +505,6 @@ begin
   return v_id;
 end $$;
 
--- ───────────────────────── staff read helpers (columns controlled in the function) ─────────────────────────
 create or replace function public.staff_get_user(p_user_id uuid)
 returns table (id uuid, display_name text, role text, account_status text, effective_status text,
                suspended_until timestamptz, suspension_reason text, warning_count integer, email text)
@@ -598,7 +536,6 @@ begin
      limit least(greatest(coalesce(p_limit, 20), 1), 50) offset greatest(coalesce(p_offset, 0), 0);
 end $$;
 
--- ───────────────────────── backstop triggers: last admin + out-of-band audit ─────────────────────────
 create or replace function public.profiles_last_admin_guard() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare v_was_active_admin boolean; v_stays boolean;
@@ -653,8 +590,6 @@ create trigger items_moderation_backstop_trg after update of moderation_status o
   for each row when (old.moderation_status is distinct from new.moderation_status)
   execute function public.items_moderation_backstop();
 
--- ───────────────────────── EXECUTE privileges ─────────────────────────
--- internal helpers + trigger functions: nobody via the API
 revoke all on function public.v3_effective_status(text, timestamptz)       from public, anon, authenticated, service_role;
 revoke all on function public.v3_clean_reason(text, integer)               from public, anon, authenticated, service_role;
 revoke all on function public.v3_staff_guard(boolean, boolean)             from public, anon, authenticated, service_role;
@@ -670,10 +605,8 @@ revoke all on function public.messages_v3_guard()            from public, anon, 
 revoke all on function public.profiles_last_admin_guard()    from public, anon, authenticated, service_role;
 revoke all on function public.profiles_audit_backstop()      from public, anon, authenticated, service_role;
 revoke all on function public.items_moderation_backstop()    from public, anon, authenticated, service_role;
--- caller-state helpers (return only the CALLER's own state; needed by RLS policies and invoker triggers)
 revoke all on function public.account_is_active(), public.account_not_banned(), public.acting_role(), public.assert_account_active() from public, anon;
 grant execute on function public.account_is_active(), public.account_not_banned(), public.acting_role(), public.assert_account_active() to authenticated;
--- staff/admin RPCs: signed-in callers only (the role check is INSIDE each function)
 revoke all on function public.staff_hide_listing(bigint, text, bigint)                    from public, anon;
 revoke all on function public.staff_restore_listing(bigint, text, bigint)                 from public, anon;
 revoke all on function public.staff_warn_user(uuid, text, bigint)                         from public, anon;

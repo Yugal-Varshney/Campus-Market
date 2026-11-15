@@ -1,19 +1,3 @@
--- 004_v3_preflight_audit.sql — READ-ONLY. Run this in the Supabase SQL Editor BEFORE any V3 migration.
---
--- One SELECT statement (no INSERT/UPDATE/DELETE/DDL), so it cannot change anything. It returns ONE result
--- table (the SQL Editor only shows the last result of a script):  section | check_name | object | detail | status
--- status:  OK / INFO / PRESENT  = fine        MISSING = an expected V2 object is absent (do NOT run V3)
---          REVIEW = look at it first         DANGER  = do NOT run V3 until this is fixed or understood
--- Tip: filter the output for status in ('DANGER','MISSING','REVIEW').
---
---  1 V2 prerequisites present?              8 existing profiles with reserved display names (not renamed)
---  2 V3 objects that already exist          9 existing rows that violate V2's NOT VALID constraints
---  3 policies on tables V3 touches         10 storage: bucket + ownership (information)
---  4 API-role write access to profiles     11 RLS status + Realtime publication
---  5 constraints 006/008 will replace      12 auth.users triggers
---  6 items.category values (008 aborts on any unmatched value)
---  7 data summary (roles, admins, statuses, conversations)
-
 with
 v2_funcs(sig) as (values ('public.check_college_email()'),('public.handle_new_user()'),('public.get_contact(bigint)'),
   ('public.items_guard()'),('public.item_private_guard()'),('public.conversations_guard()'),
@@ -40,7 +24,6 @@ seed_categories(c) as (values ('books'),('notes'),('electronics'),('stationary')
 reserved_tokens(tok) as (values ('administrator'),('campusmarket'),('moderator'),('support'),('system'),('admin')),
 rows_out as (
 
-  -- 1 ── V2 prerequisites
   select 1 as s, 'V2 function' as check_name, f.sig as object, 'from V2 migrations 002/003' as detail,
          case when to_regprocedure(f.sig) is not null then 'PRESENT' else 'MISSING' end as status from v2_funcs f
   union all
@@ -62,7 +45,6 @@ rows_out as (
                  ('profiles.role column', exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'role'))) x(obj, ok)
 
   union all
-  -- 2 ── V3 objects that already exist (a clean V2 production has none)
   select 2, 'V3 table already exists', t.t, 'migration will skip creating it (re-run) - REVIEW if you did not run V3 before',
          case when to_regclass('public.' || t.t) is not null then 'REVIEW' else 'OK' end from v3_tables t
   union all
@@ -79,7 +61,6 @@ rows_out as (
               then 'REVIEW' else 'OK' end from v3_policy_names p
 
   union all
-  -- 3 ── every policy on the tables V3 touches (+ the dangerous ones)
   select 3, 'policy', p.schemaname || '.' || p.tablename || ' / "' || p.policyname || '"',
          p.cmd || ' | ' || p.permissive || ' | roles=' || p.roles::text || ' | USING: ' || coalesce(p.qual, '-') || ' | CHECK: ' || coalesce(p.with_check, '-'),
          case
@@ -96,14 +77,12 @@ rows_out as (
      or (p.schemaname = 'storage' and p.tablename = 'objects')
 
   union all
-  -- 4 ── can API roles write profiles? (role-escalation prerequisite)
   select 4, 'profiles privilege', r.role_name || ' / ' || p.priv,
          case when has_any_column_privilege(r.role_name, 'public.profiles', p.priv) then 'granted' else 'not granted' end,
          case when has_any_column_privilege(r.role_name, 'public.profiles', p.priv) then 'DANGER' else 'OK' end
   from (values ('anon'),('authenticated')) r(role_name), (values ('INSERT'),('UPDATE')) p(priv)
 
   union all
-  -- 5 ── constraints that 006 and 008 replace
   select 5, 'items CHECK constraint', c.conname, pg_get_constraintdef(c.oid),
          case when pg_get_constraintdef(c.oid) ~ 'status = ANY \(ARRAY\[''active''::text, ''sold''::text, ''rented''::text\]\)' then 'INFO (006 replaces this)'
               when pg_get_constraintdef(c.oid) ~ '^CHECK \(\(category = ANY' then 'INFO (008 replaces this)'
@@ -121,7 +100,6 @@ rows_out as (
                 or exists (select 1 from pg_constraint where conname = 'items_category_fkey') then 'OK' else 'DANGER' end
 
   union all
-  -- 6 ── category values: 008 stops if any value has no seed/category row (it never rewrites them)
   select 6, 'items.category value', coalesce(i.category, 'NULL'), i.n::text || ' listing(s)',
          case when i.category in (select c from seed_categories)
                 or (to_regclass('public.categories') is not null and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'categories' and column_name = 'slug'))
@@ -129,7 +107,6 @@ rows_out as (
   from (select category, count(*) as n from public.items group by category) i
 
   union all
-  -- 7 ── data summary
   select 7, 'profiles by role', coalesce(to_jsonb(p) ->> 'role', 'NULL'), count(*)::text || ' profile(s)', 'INFO'
   from public.profiles p group by to_jsonb(p) ->> 'role'
   union all
@@ -147,7 +124,6 @@ rows_out as (
   from public.items where seller_id is null
 
   union all
-  -- 8 ── existing profiles whose display name is reserved (009 blocks NEW sign-ups only; nothing is renamed)
   select 8, 'reserved display name in use', p.display_name || ' (' || p.id::text || ')', 'role=' || coalesce(p.r, '?') || ' - NOT renamed by V3', 'REVIEW'
   from (select x.id, x.display_name, to_jsonb(x) ->> 'role' as r, n.norm,
                regexp_replace(regexp_replace(n.norm, '(administrator|campusmarket|moderator|support|system|admin)', '', 'g'),
@@ -160,7 +136,6 @@ rows_out as (
                             '(administrator|campusmarket|moderator|support|system|admin)', '', 'g') ~ '^[0-9]*$')
 
   union all
-  -- 9 ── rows that would reject UPDATEs (e.g. a moderator hiding them) because of V2's NOT VALID constraints
   select 9, 'item violating V2 constraints', 'items.id=' || i.id::text,
          concat_ws(', ', case when char_length(btrim(i.title)) not between 3 and 120 then 'title length' end,
                          case when char_length(i.description) > 1000 then 'description > 1000' end,
@@ -176,7 +151,6 @@ rows_out as (
   select 9, 'summary', 'violations', 'none listed above = clean', 'INFO'
 
   union all
-  -- 10 ── storage
   select 10, 'storage bucket', b.id::text, 'public=' || b.public::text || ' | file_size_limit=' || coalesce(b.file_size_limit::text, 'none')
          || ' | mime=' || coalesce(b.allowed_mime_types::text, 'any'), 'INFO' from storage.buckets b
   union all
@@ -191,7 +165,6 @@ rows_out as (
   from pg_class c where c.oid = 'storage.objects'::regclass
 
   union all
-  -- 11 ── RLS + Realtime
   select 11, 'RLS enabled', c.relname::text, case when c.relrowsecurity then 'on' else 'OFF' end,
          case when c.relrowsecurity then 'OK' else 'DANGER' end
   from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r'
@@ -201,7 +174,6 @@ rows_out as (
   from pg_publication_tables pt where pt.pubname = 'supabase_realtime'
 
   union all
-  -- 12 ── triggers on auth.users
   select 12, 'auth.users trigger', t.tgname::text, pg_get_triggerdef(t.oid), 'INFO'
   from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace
   where not t.tgisinternal and n.nspname = 'auth' and c.relname = 'users'

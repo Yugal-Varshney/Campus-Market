@@ -1,6 +1,5 @@
 'use client';
 
-/** UX only: shrink big photos in the browser before upload. The server re-validates everything. */
 export async function compressImage(file: File, maxSide = 1600, quality = 0.85): Promise<File> {
   if (!file.type.startsWith('image/') || file.size < 600 * 1024) return file;
   try {

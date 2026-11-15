@@ -1,4 +1,3 @@
-/** Which pages require sign-in. A regression here would expose a page to signed-out visitors. */
 import { AUTH_PAGES, isProtectedPath } from '../lib/supabase/paths';
 
 let failed = 0;

@@ -12,7 +12,6 @@ export default function ProductCard({ item, wishlisted, index = 0, categoryNames
   return (
     <article className={`item-card${st.done ? ' is-done' : ''}`} style={{ animationDelay: `${Math.min(index, 8) * 50}ms` }}>
       <div className="item-media-wrap">
-        {/* The photo is a second link to the same page as the title, so it is skipped by keyboard and screen readers. */}
         <Link href={`/marketplace/${item.id}`} tabIndex={-1} aria-hidden="true">
           <div className="item-media">
             {item.imageUrl ? (

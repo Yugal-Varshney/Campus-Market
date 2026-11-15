@@ -1,21 +1,3 @@
--- 001_initial_review.sql — READ-ONLY AUDIT. Changes nothing.
---
--- This file is ONE SELECT statement (no INSERT/UPDATE/DELETE/DDL), so it cannot modify anything.
--- It returns ONE result table because the Supabase SQL Editor only displays the last result of a
--- script. Columns:  section | check_name | object | detail | status
--- status:  OK · INFO · PRESENT/MISSING (expected V1 object) · REVIEW (look at it before running 002/003)
---          · DANGER (do NOT run 002/003 until you understand it)
--- Tip: sort/filter the output by `status` — anything that is not OK / INFO / PRESENT deserves a look.
---
--- Sections
---  1 RLS enabled?                          8 existing rows that violate the new NOT VALID constraints
---  2 RLS policies on the six app tables    9 existing conversations vs. their listing's real owner
---  3 Expected V1 policy names present?    10 current privileges on profiles (002 revokes writes)
---  4 Storage policies (exact names)       11 Realtime publication contents
---  5 Storage bucket config + objects      12 registered email domains (to build allowed_email_domains)
---  6 get_contact() privileges             13 objects 002/003 will create — do they already exist?
---  7 Triggers + function definitions
-
 with
 app_tables(t) as (values ('profiles'),('items'),('item_private'),('wishlists'),('conversations'),('messages')),
 expected_policies(tbl, pol) as (values
@@ -24,7 +6,6 @@ expected_policies(tbl, pol) as (values
   ('wishlists','own wishlist'), ('conversations','see my chats'), ('conversations','buyer starts chat'),
   ('messages','read my messages'), ('messages','send in my chats')),
 expected_storage_policies(pol) as (values ('anyone views photos'), ('students upload photos')),
--- storage write-policies that 002 itself creates or drops; everything else that can write STAYS ACTIVE
 storage_known_write(pol) as (values ('students upload photos'), ('upload to own folder'), ('delete own photos')),
 get_contact_fn as (
   select p.oid, p.oid::regprocedure::text as sig, pg_get_userbyid(p.proowner) as owner, p.prosecdef, p.proconfig,
@@ -36,7 +17,6 @@ get_contact_fn as (
   where n.nspname = 'public' and p.proname = 'get_contact'),
 rows_out as (
 
-  -- 1 ── RLS status
   select 1 as s, 'RLS enabled' as check_name, c.relname::text as object,
          case when c.relrowsecurity then 'row level security ON' else 'row level security OFF' end as detail,
          case when c.relrowsecurity then 'OK' else 'DANGER' end as status
@@ -44,21 +24,18 @@ rows_out as (
   where n.nspname = 'public' and c.relkind = 'r'
 
   union all
-  -- 2 ── every RLS policy on the six app tables
   select 2, 'RLS policy', p.tablename || ' / "' || p.policyname || '"',
          p.cmd || ' | roles=' || p.roles::text || ' | ' || p.permissive || ' | USING: ' || coalesce(p.qual, '-') ||
          ' | CHECK: ' || coalesce(p.with_check, '-'), 'INFO'
   from pg_policies p where p.schemaname = 'public' and p.tablename in (select t from app_tables)
 
   union all
-  -- 3 ── expected V1 policy names: present or missing
   select 3, 'expected V1 policy', e.tbl || ' / "' || e.pol || '"',
          'from supabase/schema.sql',
          case when exists (select 1 from pg_policies p where p.schemaname = 'public'
                            and p.tablename = e.tbl and p.policyname = e.pol) then 'PRESENT' else 'MISSING' end
   from expected_policies e
   union all
-  -- 3b ── policies on public tables that are NOT in V1's schema (added in the dashboard? by hand?)
   select 3, 'UNEXPECTED policy (not in V1 schema.sql)', p.tablename || ' / "' || p.policyname || '"',
          p.cmd || ' | roles=' || p.roles::text || ' | USING: ' || coalesce(p.qual, '-') || ' | CHECK: ' || coalesce(p.with_check, '-'),
          'REVIEW'
@@ -66,7 +43,6 @@ rows_out as (
     and not exists (select 1 from expected_policies e where e.tbl = p.tablename and e.pol = p.policyname)
 
   union all
-  -- 4 ── storage policies, exact names (storage.objects and storage.buckets)
   select 4, 'storage policy', p.tablename || ' / "' || p.policyname || '"',
          p.cmd || ' | roles=' || p.roles::text || ' | ' || p.permissive || ' | USING: ' || coalesce(p.qual, '-') ||
          ' | CHECK: ' || coalesce(p.with_check, '-'),
@@ -93,7 +69,6 @@ rows_out as (
                            and p.policyname = 'students upload photos') then 'INFO' else 'REVIEW' end
 
   union all
-  -- 5 ── bucket configuration + existing objects against the limits 002 will set
   select 5, 'storage bucket', b.id::text,
          'public=' || b.public::text || ' | file_size_limit=' || coalesce(b.file_size_limit::text, 'none') ||
          ' | allowed_mime_types=' || coalesce(b.allowed_mime_types::text, 'any'), 'INFO'
@@ -116,7 +91,6 @@ rows_out as (
   where o.bucket_id = 'item-images' and (storage.foldername(o.name))[1] !~ '^[0-9a-f-]{36}$'
 
   union all
-  -- 6 ── get_contact(): signature, owner, privileges
   select 6, 'get_contact() function', g.sig,
          'owner=' || g.owner || ' | security_definer=' || g.prosecdef::text || ' | config=' || coalesce(g.proconfig::text, 'none') ||
          ' | anon can execute=' || g.anon_can::text || ' | PUBLIC can execute=' || g.public_can::text ||
@@ -130,7 +104,6 @@ rows_out as (
                    and (select count(*) from get_contact_fn) = 1 then 'OK' else 'REVIEW' end
 
   union all
-  -- 7 ── triggers (full definitions) on public tables and auth.users
   select 7, 'trigger', c.relname::text || ' / ' || t.tgname, pg_get_triggerdef(t.oid), 'INFO'
   from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace
   where not t.tgisinternal and (n.nspname = 'public' or (n.nspname = 'auth' and c.relname = 'users'))
@@ -145,8 +118,6 @@ rows_out as (
   where n.nspname = 'public' and p.proname in ('check_college_email','handle_new_user','get_contact')
 
   union all
-  -- 8 ── existing rows that violate the NOT VALID constraints 002 will add
-  --      (NOT VALID skips old rows, but an UPDATE of a violating row — e.g. "mark sold" — WILL be rejected)
   select 8, 'items violating new constraints', 'items.id=' || i.id::text,
          'title="' || left(i.title, 40) || '" | problems: ' ||
          concat_ws(', ',
@@ -171,14 +142,13 @@ rows_out as (
          'INFO'
   union all
   select 8, 'item photos not matching the own-folder URL rule', 'items',
-         count(*)::text || ' item(s) — only enforced when image_url is CHANGED; demo rows with bare filenames are expected',
+         count(*)::text || ' item(s) - only enforced when image_url is CHANGED; demo rows with bare filenames are expected',
          'INFO'
   from public.items i
   where i.image_url is not null
     and i.image_url !~ ('^https://[^/]+/storage/v1/object/public/item-images/' || coalesce(i.seller_id::text, 'x') || '/[A-Za-z0-9._-]+$')
 
   union all
-  -- 9 ── existing conversations vs. the listing's actual owner (002 enforces this on NEW chats only)
   select 9, 'conversation whose seller_id differs from the listing owner', 'conversations.id=' || c.id::text,
          'item ' || c.item_id::text || ' | conversation seller=' || c.seller_id::text || ' | listing owner=' || coalesce(i.seller_id::text, 'NULL'),
          'REVIEW'
@@ -191,7 +161,6 @@ rows_out as (
          ' existing conversations match; 002 never rewrites them', 'INFO'
 
   union all
-  -- 10 ── who can write profiles right now (002 revokes this; V1 relies on RLS having no write policy)
   select 10, 'profiles table privilege', r.role_name || ' / ' || p.priv,
          case when has_table_privilege(r.role_name, 'public.profiles', p.priv) then 'granted (RLS still applies)' else 'not granted' end,
          case when has_table_privilege(r.role_name, 'public.profiles', p.priv) then 'INFO' else 'OK' end
@@ -201,7 +170,6 @@ rows_out as (
   from pg_policies p where p.schemaname = 'public' and p.tablename = 'profiles' and p.cmd in ('INSERT','UPDATE','DELETE','ALL')
 
   union all
-  -- 11 ── Realtime publication: which tables, and is RLS on for them?
   select 11, 'published to Realtime', pt.schemaname || '.' || pt.tablename,
          'RLS=' || (select c.relrowsecurity::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
                     where n.nspname = pt.schemaname and c.relname = pt.tablename),
@@ -215,12 +183,10 @@ rows_out as (
          (select count(*) from pg_publication_tables where pubname = 'supabase_realtime')::text || ' table(s) currently published (003 adds messages + conversations)', 'INFO'
 
   union all
-  -- 12 ── email domains of registered users (helps you build allowed_email_domains; 002 does not touch users)
   select 12, 'registered email domain', u.dom, count(*)::text || ' user(s)', 'INFO'
   from (select lower(split_part(email, '@', 2)) as dom from auth.users) u group by u.dom
 
   union all
-  -- 13 ── things 002/003 create: already there?
   select 13, 'column profiles.role', 'profiles.role', '003 adds it with default ''student''',
          case when exists (select 1 from information_schema.columns where table_schema = 'public'
                            and table_name = 'profiles' and column_name = 'role') then 'REVIEW' else 'INFO' end

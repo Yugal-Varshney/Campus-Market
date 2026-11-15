@@ -21,7 +21,7 @@ export default async function WishlistPage() {
       <header className="listings-header" style={{ marginBottom: '2rem' }}>
         <div className="listings-header-left">
           <h1 className="font-display">MY WISHLIST</h1>
-          <span className="item-count-badge" role="status">{items ? `${items.length} SAVED` : '—'}</span>
+          <span className="item-count-badge" role="status">{items ? `${items.length} SAVED` : '-'}</span>
         </div>
       </header>
       {!items ? (

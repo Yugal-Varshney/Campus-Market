@@ -1,10 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createListing, deleteListing, have, login, session, uniq } from './helpers';
 
-// UX plan, Phase 5: keyboard use, small screens, offline behaviour, and the Phase 2-4 flows end to end.
-// Runs in the "desktop" project; phone widths are set per group below.
-
-/** True when the element that has keyboard focus shows it (an outline or a focus ring). */
 const focusIsVisible = (page: Page) => page.evaluate(() => {
   const el = document.activeElement as HTMLElement | null;
   if (!el || el === document.body) return true;
@@ -12,7 +8,6 @@ const focusIsVisible = (page: Page) => page.evaluate(() => {
   return (cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0) || cs.boxShadow !== 'none';
 });
 
-/** Presses Tab `n` times and returns a description of every stop that shows no focus indicator. */
 async function tabAudit(page: Page, n: number): Promise<string[]> {
   const bad: string[] = [];
   for (let i = 0; i < n; i++) {

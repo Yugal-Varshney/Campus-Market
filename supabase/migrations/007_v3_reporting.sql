@@ -1,26 +1,5 @@
--- 007_v3_reporting.sql — Campus Market V3: reporting listings and users.
---
--- WHAT THIS CHANGES: new table `reports` (+ constraints, indexes, RLS, triggers), new report RPCs,
--- a foreign key moderation_actions.report_id -> reports.id, and one more BEFORE DELETE trigger on items
--- (a listing with an open report cannot be deleted). Nothing existing is modified or deleted.
--- Idempotent; one transaction. Requires 006.
---
--- Anti-abuse (all enforced by the database, not the UI):
---   * reporter_id, status, reviewed_by/at and the reported user are DERIVED by a trigger; anything the
---     client sends for them is overwritten. The reported user of a listing report is the listing owner.
---   * no self-reports and no reports on your own listing; one OPEN report per (reporter, target)
---     (partial unique indexes); 3 reports/hour and 10/day per user (rate_limit_check 'report_create');
---     suspended/banned accounts cannot report; 'other' needs a >=10 character explanation.
---   * reports can never be edited (evidence columns are frozen) or deleted; status only moves
---     pending -> reviewing -> resolved|dismissed, and closed reports are final.
---   * students read only their own reports; staff read all; nobody updates/deletes through the API.
---   * FKs are ON DELETE SET NULL plus a snapshot (target_snapshot) so evidence survives deleted users/listings.
--- SECURITY DEFINER protections: same rules as 006 (search_path = '', actor = auth.uid(), role re-checked
--- inside, moderators cannot handle reports about moderators/admins, EXECUTE only for authenticated).
-
 begin;
 
--- ───────────────────────── PRE-FLIGHT GATE ─────────────────────────
 do $$
 begin
   if to_regclass('public.moderation_actions') is null or to_regprocedure('public.staff_hide_listing(bigint,text,bigint)') is null
@@ -30,7 +9,6 @@ begin
   end if;
 end $$;
 
--- ───────────────────────── reports ─────────────────────────
 create table if not exists public.reports (
   id               bigint generated always as identity primary key,
   reporter_id      uuid references auth.users(id) on delete set null,
@@ -57,13 +35,11 @@ create index if not exists reports_status_created on public.reports (status, cre
 create index if not exists reports_listing on public.reports (listing_id) where listing_id is not null;
 create index if not exists reports_reported_user on public.reports (reported_user_id) where reported_user_id is not null;
 create index if not exists reports_reporter on public.reports (reporter_id, created_at desc);
--- one OPEN report per reporter and target (stops repeat/identical spam)
 create unique index if not exists reports_one_open_per_listing on public.reports (reporter_id, listing_id)
   where listing_id is not null and status in ('pending','reviewing');
 create unique index if not exists reports_one_open_per_user on public.reports (reporter_id, reported_user_id)
   where listing_id is null and reported_user_id is not null and status in ('pending','reviewing');
 
--- moderation_actions.report_id can now be a real foreign key
 do $$ begin
   if not exists (select 1 from pg_constraint where conname = 'moderation_actions_report_fkey') then
     alter table public.moderation_actions add constraint moderation_actions_report_fkey
@@ -71,7 +47,6 @@ do $$ begin
   end if;
 end $$;
 
--- ───────────────────────── triggers ─────────────────────────
 create or replace function public.reports_before_insert() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare v_uid uuid := auth.uid(); it record; u record;
@@ -102,7 +77,6 @@ drop trigger if exists reports_before_insert_trg on public.reports;
 create trigger reports_before_insert_trg before insert on public.reports
   for each row execute function public.reports_before_insert();
 
--- signal for V4: three open reports on one target within 24 hours (accepted request, so it persists)
 create or replace function public.reports_after_insert() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare n integer;
@@ -120,7 +94,6 @@ drop trigger if exists reports_after_insert_trg on public.reports;
 create trigger reports_after_insert_trg after insert on public.reports
   for each row execute function public.reports_after_insert();
 
--- Evidence is immutable; only the review workflow may change a report (INVOKER function: no privileges needed).
 create or replace function public.reports_guard_update() returns trigger
 language plpgsql set search_path = '' as $$
 begin
@@ -128,7 +101,6 @@ begin
      or new.created_at is distinct from old.created_at or new.target_snapshot is distinct from old.target_snapshot then
     raise exception 'Report evidence cannot be changed.' using errcode = '42501';
   end if;
-  -- foreign-key actions (ON DELETE SET NULL) may only clear these columns, never re-point them
   if (new.reporter_id is distinct from old.reporter_id and new.reporter_id is not null)
      or (new.reported_user_id is distinct from old.reported_user_id and new.reported_user_id is not null)
      or (new.listing_id is distinct from old.listing_id and new.listing_id is not null) then
@@ -156,7 +128,6 @@ drop trigger if exists reports_no_truncate on public.reports;
 create trigger reports_no_truncate before truncate on public.reports
   for each statement execute function public.v3_block_mutation();
 
--- A listing with an open (pending/reviewing) report cannot be deleted by anyone: sellers mark it sold/rented/inactive.
 create or replace function public.items_v3_report_delete_guard() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -170,7 +141,6 @@ drop trigger if exists items_v3_report_delete_guard_trg on public.items;
 create trigger items_v3_report_delete_guard_trg before delete on public.items
   for each row execute function public.items_v3_report_delete_guard();
 
--- ───────────────────────── RLS ─────────────────────────
 alter table public.reports enable row level security;
 revoke all on public.reports from public, anon, authenticated, service_role;
 grant select, insert on public.reports to authenticated;       -- no UPDATE / DELETE / TRUNCATE for any API role
@@ -190,7 +160,6 @@ drop policy if exists "v3 banned no insert" on public.reports;
 create policy "v3 banned no insert" on public.reports as restrictive for insert to authenticated
   with check ((select public.account_not_banned()));
 
--- ───────────────────────── staff RPCs ─────────────────────────
 create or replace function public.v3_close_report(p_report_id bigint, p_new_status text, p_reason text)
 returns bigint language plpgsql security definer set search_path = '' as $$
 declare v_role text; v_reason text; r record; v_trole text;
@@ -236,7 +205,6 @@ begin
                               'Report claimed for review', '{}'::jsonb);
 end $$;
 
--- ───────────────────────── EXECUTE privileges ─────────────────────────
 revoke all on function public.reports_before_insert(), public.reports_after_insert(), public.reports_guard_update(),
   public.items_v3_report_delete_guard() from public, anon, authenticated, service_role;
 revoke all on function public.v3_close_report(bigint, text, text) from public, anon, authenticated, service_role;

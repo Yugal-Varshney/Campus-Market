@@ -6,7 +6,6 @@ import type { ListingQuery } from '@/types';
 
 type P = Record<string, string | undefined>;
 
-/** Everything that is narrowing the results right now, each with a one-click remove. Plain links, so no JavaScript is needed. */
 export default function ActiveFilters({ query, categoryNames }: { query: ListingQuery; categoryNames?: Record<string, string> }) {
   const base: P = {
     q: query.q || undefined,

@@ -1,17 +1,3 @@
--- v3_post_migration_verification.sql (PART 1 of 2: structure, security, privileges) — READ-ONLY.
--- Run in the Supabase SQL Editor AFTER migrations 005-009. Uses only catalog tables and V2 tables, so it never errors
--- even if a migration is missing (it reports FAIL instead). Run PART 2 (v3_post_migration_data_checks.sql) only when this shows 0 FAIL.
---
--- ONE SELECT statement (no INSERT/UPDATE/DELETE/DDL, calls no V3 function): it cannot change anything. One result table:
---   mig | area | check_name | expected | actual | status        status: PASS / FAIL / REVIEW / INFO
--- The first rows are a SUMMARY (overall + per migration). Overall must read "0 FAIL". Then read any FAIL/REVIEW
--- rows (they sort to the top of each area). Paste the whole output back to me.
---
--- Areas: 1 tables+RLS  2 columns  3 constraints+FKs  4 policies (expected AND unexpected)  5 storage+Realtime
---        6 table privileges  7 functions (SECURITY DEFINER, search_path, EXECUTE)  8 triggers
---       10 V2 data preserved + integrity  13 ownership        (rate-limit rules, categories, behaviour = PART 2)
--- Edit the `expected_min_counts` values below if your row counts changed since the 004 audit.
-
 with
 expected_min_counts(tbl, n) as (values ('items', 7), ('conversations', 2), ('messages', 11), ('wishlists', 1), ('profiles', 3)),
 exp_tables(mig, tbl) as (values ('005','audit_logs'),('005','security_events'),('005','rate_limit_rules'),('005','rate_limit_events'),
@@ -23,7 +9,6 @@ exp_cols(mig, tbl, col, nullable, dflt) as (values
   ('006','profiles','last_warning_at','YES',null), ('006','profiles','last_warning_reason','YES',null),
   ('006','items','moderation_status','NO',$$'approved'::text$$), ('006','items','moderated_by','YES',null), ('006','items','moderated_at','YES',null), ('006','items','moderation_reason','YES',null),
   ('V2','profiles','role','NO',$$'student'::text$$)),
--- (schema, table, policy, command, kind)
 exp_pol(mig, sch, tbl, pol, cmd, kind) as (values
   ('V2','public','items','sellers post','INSERT','PERMISSIVE'), ('V2','public','items','sellers update own','UPDATE','PERMISSIVE'), ('V2','public','items','sellers delete own','DELETE','PERMISSIVE'),
   ('006','public','items','v3 browse approved','SELECT','PERMISSIVE'), ('006','public','items','v3 owner reads own listings','SELECT','PERMISSIVE'), ('006','public','items','v3 staff read all listings','SELECT','PERMISSIVE'),
@@ -55,7 +40,6 @@ exp_trg(mig, sch, tbl, trg) as (values
   ('008','public','categories','categories_touch_trg'), ('008','public','items','items_v3_category_guard_trg'),
   ('009','public','items','items_v3_limits_trg'), ('009','public','conversations','conversations_v3_limits_trg'), ('009','public','messages','messages_v3_limits_trg'),
   ('V2','auth','users','college_email_only'), ('V2','auth','users','college_email_only_update'), ('V2','auth','users','on_auth_user_created'), ('009','auth','users','reserved_display_name_only')),
--- kind I = internal (no API role may execute), R = signed-in callers only, P = pure (anon + signed-in); definer = SECURITY DEFINER expected
 exp_fn(mig, fname, kind, definer) as (values
   ('005','v3_block_mutation','I',false), ('005','audit_write','I',true), ('005','record_security_event','I',true), ('005','rate_limit_check','I',true),
   ('006','v3_effective_status','I',false), ('006','account_is_active','R',true), ('006','account_not_banned','R',true), ('006','acting_role','R',true), ('006','assert_account_active','R',true),
@@ -70,7 +54,6 @@ exp_fn(mig, fname, kind, definer) as (values
   ('008','categories_touch','I',false), ('008','items_v3_category_guard','I',true), ('008','admin_create_category','R',true), ('008','admin_update_category','R',true), ('008','admin_set_category_active','R',true),
   ('009','items_v3_limits','I',true), ('009','conversations_v3_limits','I',true), ('009','messages_v3_limits','I',true), ('009','v3_storage_upload_check','R',true),
   ('009','v3_normalize_name','I',false), ('009','is_display_name_reserved','P',true), ('009','check_reserved_display_name','I',true), ('009','v3_purge_old_events','I',true)),
--- table, authenticated privileges, anon privileges, service_role privileges (comma lists; '' = none)
 exp_priv(mig, tbl, auth_p, anon_p, svc_p) as (values
   ('005','audit_logs','SELECT','',''), ('005','security_events','SELECT','',''), ('005','rate_limit_rules','','',''), ('005','rate_limit_events','','',''),
   ('006','moderation_actions','SELECT','',''), ('007','reports','SELECT,INSERT','',''), ('008','categories','SELECT','','')),
@@ -82,21 +65,18 @@ fn_oid as (select p.oid, p.proname, p.prosecdef, p.proconfig, pg_get_userbyid(p.
            from pg_proc p where p.pronamespace = 'public'::regnamespace),
 checks(mig, area, area_name, check_name, expected, actual, status) as (
 
-  -- 1 ── tables + RLS (RLS on, NOT forced: SECURITY DEFINER functions rely on owner bypass)
   select t.mig, 1, 'tables + RLS', 'table ' || t.tbl, 'exists, RLS on, not forced',
          case when c.oid is null then 'MISSING' else 'exists, RLS ' || case when c.relrowsecurity then 'on' else 'OFF' end || case when c.relforcerowsecurity then ', FORCED' else '' end end,
          case when c.oid is not null and c.relrowsecurity and not c.relforcerowsecurity then 'PASS' else 'FAIL' end
   from exp_tables t left join pg_class c on c.relnamespace = 'public'::regnamespace and c.relname = t.tbl and c.relkind = 'r'
 
   union all
-  -- 2 ── columns (existing rows got the defaults: account_status active, moderation_status approved)
   select e.mig, 2, 'columns', e.tbl || '.' || e.col, 'nullable=' || e.nullable || ', default=' || coalesce(e.dflt, '(none)'),
          coalesce('nullable=' || c.is_nullable || ', default=' || coalesce(c.column_default, '(none)'), 'MISSING'),
          case when c.column_name is not null and c.is_nullable = e.nullable and coalesce(c.column_default, '(none)') = coalesce(e.dflt, '(none)') then 'PASS' else 'FAIL' end
   from exp_cols e left join information_schema.columns c on c.table_schema = 'public' and c.table_name = e.tbl and c.column_name = e.col
 
   union all
-  -- 3 ── constraints and foreign keys
   select x.mig, 3, 'constraints', x.con, x.expected, coalesce(a.actual, 'MISSING'),
          case when a.actual is not null and (x.fragment is null or a.def like '%' || x.fragment || '%') and (x.validated is null or a.validated = x.validated) then 'PASS' else 'FAIL' end
   from (values
@@ -130,13 +110,11 @@ checks(mig, area, area_name, check_name, expected, actual, status) as (
          case when (select count(*) from pg_indexes where schemaname = 'public' and tablename = 'reports' and indexname in ('reports_one_open_per_listing', 'reports_one_open_per_user') and indexdef like 'CREATE UNIQUE%') = 2 then 'PASS' else 'FAIL' end
 
   union all
-  -- 4 ── policies: every expected one present with the right command/kind ...
   select e.mig, 4, 'policies', e.sch || '.' || e.tbl || ' / "' || e.pol || '"', e.cmd || ' ' || e.kind,
          coalesce(p.cmd || ' ' || p.permissive, 'MISSING'),
          case when p.policyname is not null and p.cmd = e.cmd and p.permissive = e.kind then 'PASS' else 'FAIL' end
   from exp_pol e left join pg_policies p on p.schemaname = e.sch and p.tablename = e.tbl and p.policyname = e.pol
   union all
-  -- ... and NOTHING else on the tables we care about (an extra permissive policy could silently defeat the design)
   select '--', 4, 'policies', 'UNEXPECTED policy ' || p.schemaname || '.' || p.tablename || ' / "' || p.policyname || '"', 'none',
          p.cmd || ' ' || p.permissive || ' roles=' || p.roles::text || ' USING ' || coalesce(p.qual, '-') || ' CHECK ' || coalesce(p.with_check, '-'),
          case when p.permissive = 'PERMISSIVE' and p.cmd in ('SELECT','ALL','INSERT','UPDATE','DELETE') then 'FAIL' else 'REVIEW' end
@@ -158,7 +136,6 @@ checks(mig, area, area_name, check_name, expected, actual, status) as (
   from (values ('rate_limit_rules'),('rate_limit_events'),('allowed_email_domains'),('contact_requests')) x(tbl)
 
   union all
-  -- 5 ── storage hardening + Realtime
   select '009', 5, 'storage + realtime', 'storage policy "upload to own folder": own folder AND active account AND photo-upload limit', 'all three conditions',
          coalesce(p.with_check, 'MISSING'),
          case when p.with_check like '%foldername%' and p.with_check like '%account_is_active%' and p.with_check like '%v3_storage_upload_check%' and p.with_check like '%item-images%' then 'PASS' else 'FAIL' end
@@ -187,7 +164,6 @@ checks(mig, area, area_name, check_name, expected, actual, status) as (
          case when coalesce((select string_agg(tablename, ', ' order by tablename) from pg_publication_tables where pubname = 'supabase_realtime'), '') = 'conversations, messages' then 'PASS' else 'FAIL' end
 
   union all
-  -- 6 ── table privileges for API roles
   select e.mig, 6, 'privileges', 'table ' || e.tbl || ' (authenticated / anon / service_role)', coalesce(nullif(e.auth_p, ''), 'none') || ' / ' || coalesce(nullif(e.anon_p, ''), 'none') || ' / ' || coalesce(nullif(e.svc_p, ''), 'none'),
          case when to_regclass('public.' || e.tbl) is null then 'MISSING' else coalesce(nullif(a.ap, ''), 'none') || ' / ' || coalesce(nullif(a.np, ''), 'none') || ' / ' || coalesce(nullif(a.sp, ''), 'none') end,
          case when to_regclass('public.' || e.tbl) is not null and a.ap = e.auth_p and a.np = e.anon_p and a.sp = e.svc_p then 'PASS' else 'FAIL' end
@@ -204,7 +180,6 @@ checks(mig, area, area_name, check_name, expected, actual, status) as (
                    and not has_table_privilege('authenticated', 'public.profiles', 'DELETE') and not has_table_privilege('anon', 'public.profiles', 'DELETE') then 'PASS' else 'FAIL' end
 
   union all
-  -- 7 ── functions: exist, definer flag, pinned empty search_path, EXECUTE matrix
   select f.mig, 7, 'functions', f.fname || '()  [' || case f.kind when 'I' then 'internal' when 'R' then 'signed-in' else 'pure/anon' end || ']',
          case f.kind when 'I' then 'definer=' || f.definer || ', search_path pinned, NO api EXECUTE' when 'R' then 'definer=' || f.definer || ', search_path pinned, authenticated only' else 'definer=' || f.definer || ', search_path pinned, anon+authenticated' end,
          coalesce('definer=' || o.prosecdef || ', search_path ' || case when o.proconfig is not null and exists (select 1 from unnest(o.proconfig) c where c = 'search_path=""') then 'pinned' else 'NOT PINNED' end ||
@@ -221,7 +196,6 @@ checks(mig, area, area_name, check_name, expected, actual, status) as (
          case when (select count(*) from fn_oid o join exp_fn f on f.fname = o.proname) = (select count(*) from exp_fn) then 'PASS' else 'FAIL' end
 
   union all
-  -- 8 ── triggers present and ENABLED ('O'), plus anything unexpected on the tables V3 guards
   select e.mig, 8, 'triggers', e.sch || '.' || e.tbl || ' / ' || e.trg, 'present, enabled', coalesce(case t.tgenabled when 'O' then 'enabled' when 'D' then 'DISABLED' else 'enabled-other(' || t.tgenabled::text || ')' end, 'MISSING'),
          case when t.tgenabled = 'O' then 'PASS' else 'FAIL' end
   from exp_trg e left join lateral (select g.tgenabled from pg_trigger g join pg_class c on c.oid = g.tgrelid join pg_namespace n on n.oid = c.relnamespace
@@ -233,7 +207,6 @@ checks(mig, area, area_name, check_name, expected, actual, status) as (
     and not exists (select 1 from exp_trg e where e.sch = n.nspname and e.tbl = c.relname and e.trg = g.tgname)
 
   union all
-  -- 10 ── V2 data preserved and consistent
   select 'V2', 10, 'data preserved', 'row count ' || e.tbl || ' (not lower than the 004 audit)', '>= ' || e.n::text,
          (case e.tbl when 'items' then (select count(*) from public.items) when 'conversations' then (select count(*) from public.conversations) when 'messages' then (select count(*) from public.messages)
                      when 'wishlists' then (select count(*) from public.wishlists) else (select count(*) from public.profiles) end)::text,
@@ -258,7 +231,6 @@ checks(mig, area, area_name, check_name, expected, actual, status) as (
   union all select 'V2', 10, 'data preserved', 'profiles by role', '(info; 0 admins until you create the first one)', (select string_agg(role || '=' || n, ', ' order by role) from (select role, count(*) n from public.profiles group by role) s), 'INFO'
   union all select 'V2', 10, 'data preserved', 'showcase listings (seller_id NULL)', '(info; was 6 at audit time)', (select count(*)::text from public.items where seller_id is null), 'INFO'
   union all
-  -- 13 ── ownership (SECURITY DEFINER functions rely on the owner bypassing RLS) 
   select '--', 13, 'ownership', 'V3 functions and tables are owned by the migration role', current_user,
          coalesce((select string_agg(distinct o, ', ') from (select owner as o from fn_oid o join exp_fn f on f.fname = o.proname union select pg_get_userbyid(c.relowner) from pg_class c join exp_tables t on c.relname = t.tbl and c.relnamespace = 'public'::regnamespace where t.mig <> 'V2') x), '(none)'),
          case when (select count(distinct o) from (select owner as o from fn_oid o join exp_fn f on f.fname = o.proname union select pg_get_userbyid(c.relowner) from pg_class c join exp_tables t on c.relname = t.tbl and c.relnamespace = 'public'::regnamespace where t.mig <> 'V2') x) = 1

@@ -13,13 +13,11 @@ export const metadata: Metadata = { title: { absolute: 'Campus Market · Buy, se
 
 const HOME_LISTINGS = 8;
 
-/** Home page: a compact hero (search + categories + two actions) with real listings right underneath it. */
 export default async function Home() {
   const [user, categories, categoryNames] = await Promise.all([getCurrentUser(), getCategories(), getCategoryNames()]);
   const browsingOpen = process.env.REQUIRE_LOGIN_TO_BROWSE === 'false';
   const canSeeListings = Boolean(user) || browsingOpen;
 
-  // Load the independent homepage sections together instead of making visitors wait for each section in turn.
   const itemsPromise: Promise<Listing[] | null> = canSeeListings
     ? getListings(parseListingQuery({}, categories.map((c) => c.value)))
         .then((result) => result.items.slice(0, HOME_LISTINGS))
@@ -32,7 +30,6 @@ export default async function Home() {
     canSeeListings ? getPopularSearches(5) : Promise.resolve([]),
   ]);
 
-  // Demand signals from real students: what is being saved and messaged about, and what several people are waiting for.
   const validCategories = categories.map((c) => c.value);
   const wanted = popular.map((p) => ({
     href: `/marketplace?${p.query}`,

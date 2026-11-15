@@ -1,25 +1,5 @@
--- 012_ux_saved_searches_and_demand.sql — Campus Market UX Phase 4: saved searches, in-app alerts, and campus demand signals.
---
--- WHAT THIS CHANGES
---   * new table  public.saved_searches   one row per saved search (max 10 per student). Private: only the owner can read or change it.
---   * new RPC    get_trending_items(days, limit)           ids of active listings students are saving and messaging about right now
---   * new RPC    get_popular_searches(days, min_users, limit)   searches that at least 3 different students saved (never one person's search)
---   * new rate-limit rule 'saved_search_create' (10 per hour, 30 per day). Rules live in public.rate_limit_rules.
--- Nothing existing is dropped or rewritten, no row of an existing table is modified. Idempotent; one transaction.
--- Requires 005, 006 and 010.
---
--- BEHAVIOUR NOTES
---   * The two RPCs are SECURITY DEFINER because wishlists and conversations are private per person. They return only listing
---     ids with a combined score, or a search text with a head-count of at least 3 students. They never return who did what.
---   * Alerts are counted by the app (new active listings that match the saved search and are newer than last_checked_at),
---     so no copy of listing data is stored here and hidden or sold listings can never show up in an alert.
---   * Students may only change notify and last_checked_at on their own rows; query and label are fixed once saved.
---   * SECURITY DEFINER functions: search_path = '', EXECUTE for authenticated only.
--- Deploy order: run this file, THEN deploy the matching app version.
-
 begin;
 
--- ───────────────────────── PRE-FLIGHT GATE ─────────────────────────
 do $$
 begin
   if to_regclass('public.items') is null
@@ -33,12 +13,10 @@ begin
   end if;
 end $$;
 
--- ───────────────────────── rate limits (configuration data; existing rows are never overwritten) ─────────────────────────
 insert into public.rate_limit_rules (action, window_seconds, max_count) values
   ('saved_search_create', 3600, 10), ('saved_search_create', 86400, 30)
 on conflict (action, window_seconds) do nothing;
 
--- ───────────────────────── saved_searches ─────────────────────────
 create table if not exists public.saved_searches (
   id              bigint generated always as identity primary key,
   user_id         uuid        not null default auth.uid() references auth.users(id) on delete cascade,
@@ -77,7 +55,6 @@ drop policy if exists "ux banned no write saved_searches" on public.saved_search
 create policy "ux banned no write saved_searches" on public.saved_searches as restrictive for insert to authenticated
   with check ((select public.account_not_banned()));
 
--- Account must be in good standing, at most 10 saved searches, and the usual rate limit.
 create or replace function public.saved_searches_insert_guard()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
@@ -93,9 +70,6 @@ drop trigger if exists saved_searches_insert_guard on public.saved_searches;
 create trigger saved_searches_insert_guard before insert on public.saved_searches
   for each row execute function public.saved_searches_insert_guard();
 
--- ───────────────────────── demand signals ─────────────────────────
--- Listings students are saving (1 point each) or opening a chat about (2 points each) in the last p_days.
--- A listing needs at least 2 points, so one person's interest never makes something "trending".
 create or replace function public.get_trending_items(p_days integer default 14, p_limit integer default 8)
 returns table (item_id bigint, score bigint)
 language sql stable security definer set search_path = '' as $$
@@ -114,7 +88,6 @@ language sql stable security definer set search_path = '' as $$
    limit greatest(1, least(coalesce(p_limit, 8), 24));
 $$;
 
--- Searches saved by at least 3 different students (never fewer, whatever the caller asks for).
 create or replace function public.get_popular_searches(p_days integer default 30, p_min_users integer default 3, p_limit integer default 6)
 returns table (search_query text, searchers bigint)
 language sql stable security definer set search_path = '' as $$

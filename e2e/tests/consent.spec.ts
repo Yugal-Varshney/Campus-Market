@@ -10,7 +10,6 @@ test.describe('seller-consent contact sharing', () => {
     const buyer = await session(browser, 'B');
     const id = await createListing(seller.page, { title, price: 120 });
 
-    // Buyer: opens the listing. There is no direct "contact seller" any more, only a chat.
     await buyer.page.goto(`/marketplace/${id}`);
     await expect(buyer.page.getByRole('button', { name: 'VIEW CONTACT DETAILS' })).toHaveCount(0);
     await buyer.page.getByRole('button', { name: 'CHAT WITH SELLER' }).click();
@@ -18,7 +17,6 @@ test.describe('seller-consent contact sharing', () => {
     await buyer.page.getByRole('button', { name: 'ASK FOR CONTACT DETAILS' }).click();
     await expect(buyer.page.getByText(/Request sent/)).toBeVisible();
 
-    // Seller: sees the request in the chat and approves it.
     await seller.page.goto('/messages');
     await seller.page.getByText(title).first().click();
     await expect(seller.page.getByText(/asked you to share your college email and phone number/)).toBeVisible();
@@ -30,7 +28,6 @@ test.describe('seller-consent contact sharing', () => {
     await buyer.page.getByRole('button', { name: 'VIEW CONTACT DETAILS' }).click();
     await expect(buyer.page.getByText(creds('A')!.email)).toBeVisible();
 
-    // Seller withdraws; the buyer can no longer open the details.
     await seller.page.getByRole('button', { name: 'STOP SHARING' }).click();
     await buyer.page.reload();
     await expect(buyer.page.getByRole('button', { name: 'VIEW CONTACT DETAILS' })).toHaveCount(0);

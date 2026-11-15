@@ -2,7 +2,6 @@ import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import type { Role, User } from '@/types';
 
-/** The verified signed-in user (validated with Supabase Auth), or null. Cached per request. */
 export const getCurrentUser = cache(async (): Promise<User | null> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

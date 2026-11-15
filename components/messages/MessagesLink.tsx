@@ -9,7 +9,6 @@ const ChatIcon = () => (
   </svg>
 );
 
-/** Navbar link to the inbox, with a live unread badge. */
 export default function MessagesLink({ userId, initial }: { userId: string; initial: number }) {
   const count = useUnreadCount(userId, initial);
   return (

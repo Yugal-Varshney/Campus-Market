@@ -1,27 +1,5 @@
--- 005_v3_audit_events_and_rate_core.sql — Campus Market V3
--- Adds: audit_logs, security_events (both APPEND-ONLY), rate_limit_rules/events + rate_limit_check().
---
--- WHAT THIS CHANGES: creates 5 new tables, 5 new functions, 6 triggers and seeds the rate-limit rules
--- table. It does NOT modify, delete or rewrite any existing V2 table, row, policy, function or trigger.
--- Idempotent: safe to run twice. Runs inside one transaction (all-or-nothing).
--- Run order: 004 (read-only audit) -> 005 (this) -> 006 -> 007 -> 008 -> 009.
---
--- SECURITY DEFINER RULES (apply to every definer function in V3, including this file):
---   * `SET search_path = ''` and every object reference is schema-qualified, so a caller's search_path
---     (or an object planted in another schema) can never change what the function does.
---   * The actor is ALWAYS auth.uid() (derived from the signed JWT). No function accepts an actor id,
---     role or "created_by" argument, and none trusts such a value from the browser.
---   * EXECUTE is revoked from PUBLIC, anon, authenticated and service_role for internal functions
---     (they are reachable only from other definer functions/triggers, which run as the owner).
---   * Nothing here needs, reads or exposes the Supabase service-role key.
--- Append-only: API roles get no INSERT/UPDATE/DELETE/TRUNCATE on the audit tables; triggers raise for
--- EVERYONE (including the SQL Editor). The database OWNER can still disable a trigger on purpose.
--- Read policies for these tables are created in 006 (they need helper functions defined there);
--- until then the tables are unreadable by API roles (RLS on, no policy).
-
 begin;
 
--- ───────────────────────── PRE-FLIGHT GATE ─────────────────────────
 do $$
 begin
   if to_regclass('public.profiles') is null or to_regclass('public.items') is null
@@ -39,7 +17,6 @@ begin
   end if;
 end $$;
 
--- ───────────────────────── append-only helper ─────────────────────────
 create or replace function public.v3_block_mutation() returns trigger
 language plpgsql set search_path = '' as $$
 begin
@@ -47,7 +24,6 @@ begin
 end $$;
 revoke all on function public.v3_block_mutation() from public, anon, authenticated, service_role;
 
--- ───────────────────────── audit_logs ─────────────────────────
 create table if not exists public.audit_logs (
   id          bigint generated always as identity primary key,
   created_at  timestamptz not null default now(),
@@ -75,7 +51,6 @@ create index if not exists audit_logs_category_created on public.audit_logs (cat
 create index if not exists audit_logs_target on public.audit_logs (target_type, target_id);
 create index if not exists audit_logs_actor on public.audit_logs (actor_id);
 
--- ───────────────────────── security_events (V4 risk-scoring foundation) ─────────────────────────
 create table if not exists public.security_events (
   id         bigint generated always as identity primary key,
   created_at timestamptz not null default now(),
@@ -90,7 +65,6 @@ create index if not exists security_events_created on public.security_events (cr
 create index if not exists security_events_user on public.security_events (user_id, created_at desc);
 create index if not exists security_events_type on public.security_events (event_type, created_at desc);
 
--- append-only triggers (row-level UPDATE/DELETE and statement-level TRUNCATE) for both tables
 do $$
 declare t text;
 begin
@@ -104,7 +78,6 @@ begin
   end loop;
 end $$;
 
--- ───────────────────────── rate limiting core ─────────────────────────
 create table if not exists public.rate_limit_rules (
   action         text    not null,
   window_seconds integer not null check (window_seconds > 0),
@@ -122,7 +95,6 @@ alter table public.rate_limit_rules  enable row level security;
 alter table public.rate_limit_events enable row level security;
 revoke all on public.rate_limit_rules, public.rate_limit_events from public, anon, authenticated, service_role;
 
--- Seed values = the agreed starting limits (configuration data; existing rows are never overwritten).
 insert into public.rate_limit_rules (action, window_seconds, max_count) values
   ('listing_create',   3600,   5), ('listing_create', 86400, 20),
   ('report_create',    3600,   3), ('report_create',  86400, 10),
@@ -133,7 +105,6 @@ insert into public.rate_limit_rules (action, window_seconds, max_count) values
   ('moderator_action', 3600, 200)
 on conflict (action, window_seconds) do nothing;
 
--- ───────────────────────── internal functions (definer, no API access) ─────────────────────────
 create or replace function public.audit_write(
   p_action text, p_category text, p_target_type text, p_target_id text,
   p_reason text default null, p_metadata jsonb default '{}'::jsonb, p_source text default 'rpc')
@@ -161,9 +132,6 @@ begin
   values (p_user_id, p_event_type, p_severity, coalesce(p_metadata, '{}'::jsonb), 'db');
 end $$;
 
--- Sliding-window limiter. user = auth.uid() (JWT), time = now() (server). Counts ACCEPTED events only,
--- and an event is recorded only when the action is allowed. Raises SQLSTATE 54000 'RATE_LIMIT: ...'.
--- If no user is authenticated (SQL Editor / service role) it does nothing.
 create or replace function public.rate_limit_check(p_action text)
 returns void language plpgsql security definer set search_path = '' as $$
 declare
@@ -172,7 +140,6 @@ declare
   v_count integer;
 begin
   if v_uid is null then return; end if;
-  -- serialise concurrent requests of the same user+action so the limit is exact
   perform pg_advisory_xact_lock(hashtextextended(v_uid::text || ':' || p_action, 0));
   delete from public.rate_limit_events where user_id = v_uid and created_at < now() - interval '2 days';
   for r in select window_seconds, max_count from public.rate_limit_rules where action = p_action order by window_seconds loop
@@ -184,7 +151,6 @@ begin
     end if;
   end loop;
   insert into public.rate_limit_events (user_id, action) values (v_uid, p_action);
-  -- signal only: crossing 80% of any limit is recorded once per window (accepted request, so it persists)
   for r in select window_seconds, max_count from public.rate_limit_rules where action = p_action loop
     select count(*) into v_count from public.rate_limit_events
      where user_id = v_uid and action = p_action and created_at > now() - make_interval(secs => r.window_seconds);
@@ -195,7 +161,6 @@ begin
   end loop;
 end $$;
 
--- No API role may call any of these directly.
 revoke all on function public.audit_write(text, text, text, text, text, jsonb, text) from public, anon, authenticated, service_role;
 revoke all on function public.record_security_event(uuid, text, text, jsonb)          from public, anon, authenticated, service_role;
 revoke all on function public.rate_limit_check(text)                                  from public, anon, authenticated, service_role;

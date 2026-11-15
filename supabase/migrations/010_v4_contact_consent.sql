@@ -1,29 +1,5 @@
--- 010_v4_contact_consent.sql — Campus Market V4: a buyer sees the seller's email/phone only after the seller approves.
---
--- WHAT THIS CHANGES
---   * new table  public.contact_shares   one row per conversation: requested -> approved | declined, approved -> revoked
---   * new RPCs   request_contact(conversation_id)            buyer asks
---                respond_contact_request(conversation_id, approve)   seller answers
---                revoke_contact_share(conversation_id)       seller stops sharing
---   * replaced   get_contact(item_id)   same signature and return shape, but it now also requires an APPROVED share
---                for (this buyer, this listing). Before this migration any signed-in user could read the contact details.
---   * new rate-limit rules for 'contact_request' (5 per hour, 15 per day). Rules live in public.rate_limit_rules.
--- Nothing existing is dropped or rewritten, no row of an existing table is modified. Idempotent; one transaction.
--- Requires 005 and 006.
---
--- BEHAVIOUR NOTES
---   * Only the BUYER of a conversation can request; only its SELLER can answer. Both identities come from
---     public.conversations (written by trigger), never from the request.
---   * A declined buyer must wait 24 hours before asking again. Approvals can be withdrawn; withdrawing cannot
---     un-show details the buyer already saw.
---   * Showcase listings (seller_id NULL) have no conversations, so their contact details can no longer be revealed.
---   * contact_shares is not added to the Realtime publication; the app refreshes the status itself.
---   * SECURITY DEFINER functions: search_path = '', actor = auth.uid(), EXECUTE for authenticated only.
--- Deploy order: run this file, then 011, then deploy the matching app version.
-
 begin;
 
--- ───────────────────────── PRE-FLIGHT GATE ─────────────────────────
 do $$
 begin
   if to_regclass('public.conversations') is null
@@ -37,12 +13,10 @@ begin
   end if;
 end $$;
 
--- ───────────────────────── rate limits (configuration data; existing rows are never overwritten) ─────────────────────────
 insert into public.rate_limit_rules (action, window_seconds, max_count) values
   ('contact_request', 3600, 5), ('contact_request', 86400, 15)
 on conflict (action, window_seconds) do nothing;
 
--- ───────────────────────── contact_shares ─────────────────────────
 create table if not exists public.contact_shares (
   conversation_id bigint primary key references public.conversations(id) on delete cascade,
   item_id         bigint not null references public.items(id) on delete cascade,
@@ -69,7 +43,6 @@ drop policy if exists "v4 banned no read" on public.contact_shares;
 create policy "v4 banned no read" on public.contact_shares as restrictive for select to authenticated
   using ((select public.account_not_banned()));
 
--- ───────────────────────── RPCs ─────────────────────────
 create or replace function public.request_contact(p_conversation_id bigint)
 returns text language plpgsql security definer set search_path = '' as $$
 declare
@@ -129,7 +102,6 @@ begin
   return v_status;
 end $$;
 
--- A suspended seller may still stop sharing (safety), so this one does not call assert_account_active().
 create or replace function public.revoke_contact_share(p_conversation_id bigint)
 returns void language plpgsql security definer set search_path = '' as $$
 declare
@@ -149,8 +121,6 @@ revoke all on function public.request_contact(bigint), public.respond_contact_re
 grant execute on function public.request_contact(bigint), public.respond_contact_request(bigint, boolean), public.revoke_contact_share(bigint)
   to authenticated;
 
--- ───────────────────────── get_contact(): now needs the seller's approval ─────────────────────────
--- Same signature and return shape as 006, so existing grants are kept (CREATE OR REPLACE does not touch privileges).
 create or replace function public.get_contact(p_item_id bigint)
 returns table (name text, email text, phone text)
 language plpgsql security definer set search_path = '' as $$

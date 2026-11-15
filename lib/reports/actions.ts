@@ -8,10 +8,6 @@ import type { ActionState } from '@/types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/**
- * Report a listing or a user. Migration 007 does the real work: the reporter, status and (for listings) the reported
- * user are set by a database trigger, duplicates and self-reports are rejected, and reports are rate limited.
- */
 export async function submitReport(input: { listingId?: number; userId?: string; reason: string; description: string }): Promise<ActionState> {
   const user = await getCurrentUser();
   if (!user) return { error: 'You need to sign in to continue.' };

@@ -28,7 +28,7 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
     return (
       <div className="stat-box usage-stat" key={label}>
         <p className="stat-label">{label}</p>
-        <p className="stat-value">{v === null ? '—' : `${v}%`}</p>
+        <p className="stat-value">{v === null ? '-' : `${v}%`}</p>
         <p className="usage-delta">{part} of {whole} · {hint}</p>
       </div>
     );

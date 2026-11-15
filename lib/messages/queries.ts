@@ -12,8 +12,6 @@ export async function getConversations(): Promise<Conversation[]> {
   if (error) throw new Error('Unable to load conversations.');
   const rows = data ?? [];
 
-  // Latest message per chat (one query). RLS limits it to chats the person is in. Chats with no recent message
-  // in this window simply have no preview and sort by when they were started.
   const last = new Map<number, { body: string; createdAt: string; senderId: string }>();
   if (rows.length) {
     const { data: msgs } = await supabase
@@ -27,7 +25,6 @@ export async function getConversations(): Promise<Conversation[]> {
     }
   }
 
-  // When I last opened each chat (RLS: only my own rows). A chat with no row counts from when it was created.
   const readAt = new Map<number, string>();
   if (rows.length) {
     const { data: reads } = await supabase
@@ -58,7 +55,6 @@ export async function getConversations(): Promise<Conversation[]> {
   return list.sort((a, b) => Date.parse(b.lastMessageAt ?? b.createdAt) - Date.parse(a.lastMessageAt ?? a.createdAt));
 }
 
-/** Initial messages for the open chat; later ones arrive over Realtime. RLS limits this to participants. */
 export async function getMessages(conversationId: number): Promise<Message[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -73,7 +69,6 @@ export async function getMessages(conversationId: number): Promise<Message[]> {
   }));
 }
 
-/** Unread messages from other people across all of the signed-in student's chats (capped at 100). Never throws. One call per request. */
 export const getUnreadCount = cache(async (): Promise<number> => {
   try {
     const supabase = await createClient();

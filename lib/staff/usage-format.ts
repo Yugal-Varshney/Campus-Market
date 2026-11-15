@@ -1,4 +1,3 @@
-/** Shape of admin_usage_summary() (migration 013) and the small pure helpers the usage screen needs. */
 export interface Pair { now: number; before: number }
 export interface UsageSummary {
   days: number;
@@ -12,7 +11,6 @@ export interface UsageSummary {
   daily: { day: string; listings: number; chats: number; messages: number }[];
 }
 
-/** "+25%", "−10%", "no change", or "new" when there was nothing in the earlier period to compare with. */
 export function formatDelta(now: number, before: number): string {
   if (before === 0) return now === 0 ? 'no change' : 'new';
   const pct = Math.round(((now - before) / before) * 100);
@@ -20,7 +18,6 @@ export function formatDelta(now: number, before: number): string {
   return `${pct > 0 ? '+' : '−'}${Math.abs(pct)}%`;
 }
 
-/** Whole-number percentage, or null when there is nothing to divide by (so the screen shows a dash instead of 0%). */
 export function percent(part: number, whole: number): number | null {
   return whole > 0 ? Math.round((part / whole) * 100) : null;
 }

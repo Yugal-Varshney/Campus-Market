@@ -1,7 +1,6 @@
 import { REPORT_REASONS } from '@/lib/constants';
 import type { ReportReason } from '@/types';
 
-/** Mirrors the database rules in migration 007: known reason, description up to 500 characters, "other" needs 10+. */
 export function validateReport(reason: string, description: string): { value?: { reason: ReportReason; description: string }; error?: string } {
   const found = REPORT_REASONS.find((r) => r.value === reason);
   if (!found) return { error: 'Pick a reason for your report.' };

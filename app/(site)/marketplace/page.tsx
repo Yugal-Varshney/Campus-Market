@@ -22,12 +22,10 @@ type SP = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function MarketplacePage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  // These requests are independent; run them together so auth doesn't add a serial round trip.
   const [categories, categoryNames, user] = await Promise.all([getCategories(), getCategoryNames(), getCurrentUser()]);
   const query = parseListingQuery(sp, categories.map((c) => c.value));
   const savable = hasSearchCriteria(query);
 
-  // Listing results, wishlist state and saved-search state do not depend on one another.
   const [result, wishlistIds, saved] = await Promise.all([
     getListings(query).catch((): null => null),
     user ? getWishlistIds(user.id) : Promise.resolve([] as number[]),
@@ -36,7 +34,6 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
   const flat = (k: string) => (Array.isArray(sp[k]) ? (sp[k] as string[])[0] : (sp[k] as string | undefined));
   const keep = { q: flat('q'), category: flat('category'), minPrice: flat('minPrice'), maxPrice: flat('maxPrice'), sort: flat('sort'), available: flat('available') };
 
-  // "Narrowed" = the person asked for something specific. The sold/rented switch alone doesn't count.
   const narrowed = Boolean(query.q) || query.categories.length > 0 || query.minPrice !== null || query.maxPrice !== null;
   const withSold = marketplaceHref({ ...keep, available: 'all', page: undefined });
 
@@ -44,7 +41,6 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
     <div className="browse-grid">
       <Suspense fallback={<aside className="browse-sidebar" />}><Filters categories={categories} /></Suspense>
       <section className="browse-main">
-        {/* Search is always on the page. The navbar box is hidden on phones and for signed-out visitors. Filters are carried over. */}
         <form className="mobile-search" action="/marketplace" role="search">
           {keep.category && <input type="hidden" name="category" value={keep.category} />}
           {keep.minPrice && <input type="hidden" name="minPrice" value={keep.minPrice} />}
@@ -64,7 +60,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
         <header className="listings-header">
           <div className="listings-header-left">
             <h1 className="font-display">{query.q ? `RESULTS FOR “${query.q.toUpperCase()}”` : 'LATEST LISTINGS'}</h1>
-            <span className="item-count-badge" role="status">{result ? `${result.total} ${result.total === 1 ? 'ITEM' : 'ITEMS'} FOUND` : '—'}</span>
+            <span className="item-count-badge" role="status">{result ? `${result.total} ${result.total === 1 ? 'ITEM' : 'ITEMS'} FOUND` : '-'}</span>
           </div>
           <Suspense fallback={null}><SortSelect /></Suspense>
         </header>

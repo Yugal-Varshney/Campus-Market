@@ -35,7 +35,7 @@ def audit_count(db, action=None, **kw):
     for k, v in kw.items(): q += f' and {k}=%s'; p.append(v)
     return db.su(q, p)[0][0]
 
-# ───────────────────────────────────────────── 1. GATES ─────────────────────────────────────────────
+# 1. GATES ─────────────────────────────────────────────
 head('1. PRE-FLIGHT GATES abort safely and change nothing')
 def fresh_through(name, upto):
     d = h.build_v2_database(name)
@@ -66,7 +66,7 @@ r = d.migrate(MIGS[4]); t('009 aborts on an unexpected storage write policy, nam
 d.su('drop policy "Dash upd" on storage.objects'); d.su('create policy "Dash all" on storage.objects for all to authenticated using (true)')
 r = d.migrate(MIGS[4]); t('009 also aborts on an ALL policy', err(r, '"Dash all"'))
 
-# ───────────────────────────────────────────── 1b. PREFLIGHT AUDIT (004) ─────────────────────────────────────────────
+# 1b. PREFLIGHT AUDIT (004) ─────────────────────────────────────────────
 head('1b. 004 preflight audit: read-only, flags real problems')
 def audit004(d):
     cn = psycopg2.connect(d.uri); cn.autocommit = False; cu = cn.cursor(); cu.execute('set transaction read only')
@@ -92,7 +92,7 @@ for (n,) in dp.su("select conname from pg_constraint where conrelid='public.item
 dp.su("update public.items set category='furniture' where title='Calculator'")
 t('004 flags an unmatched category value as DANGER (008 would abort)', any(r[1] == 'items.category value' and r[2] == 'furniture' and r[4] == 'DANGER' for r in audit004(dp)))
 
-# ───────────────────────────────────── 1c. STORAGE PRIVILEGES (Supabase: postgres does not own storage.objects) ─────────────────────────────────────
+# 1c. STORAGE PRIVILEGES (Supabase: postgres does not own storage.objects) ─────────────────────────────────────
 head('1c. Migration role that does NOT own storage.objects (mirrors Supabase ownership)')
 own = h.create_db('own1') or h.DB('own1')
 try: own.su('revoke supabase_storage_admin from mig_editor')          # roles are cluster-wide: start from a known state
@@ -139,7 +139,7 @@ t('009 leaves no probe policy; V2 storage policies now also require an active ac
 t('009 re-run is idempotent', as_editor(MIGS[4])[0] == 'OK')
 own.su('revoke supabase_storage_admin from mig_editor')
 
-# ───────────────────────────────────── 2. APPLY ON V2 PRODUCTION-SHAPED DATA ─────────────────────────────────────
+# 2. APPLY ON V2 PRODUCTION-SHAPED DATA ─────────────────────────────────────
 head('2. Apply 005-009 to V2-shaped production data: preserved, idempotent')
 db = h.build_v2_database('v3t'); fp0 = h.fingerprint(db)
 counts0 = {k: db.su(f'select count(*) from {k}')[0][0] for k in ['public.items', 'public.profiles', 'public.conversations', 'public.messages', 'public.wishlists', 'public.item_private']}
@@ -164,7 +164,7 @@ t('V2 policies kept (except the replaced browse policy); old CHECKs replaced', a
 for uid, role in [(E, 'moderator'), (F, 'moderator'), (G, 'admin'), (H, 'admin')]: db.su("update public.profiles set role=%s where id=%s", (role, uid))
 t('promoting via SQL Editor is audited as source=direct_sql / category=security', audit_count(db, 'ROLE_CHANGED', source='direct_sql', category='security') == 4)
 
-# ───────────────────────────────────── 3. CATALOG: search_path + EXECUTE + privileges ─────────────────────────────────────
+# 3. CATALOG: search_path + EXECUTE + privileges ─────────────────────────────────────
 head('3. SECURITY DEFINER hygiene, EXECUTE and table privileges (catalog assertions)')
 names = set()
 for f in MIGS:
@@ -195,7 +195,7 @@ t('anon cannot read/write anything V3', all(db.as_(None, f'select count(*) from 
 t('anon cannot call staff RPCs', all(err(db.as_(None, q, args, role='anon'), 'permission denied') for q, args in [('select public.staff_get_user(%s)', (A,)), ('select public.admin_set_role(%s,%s,%s)', (A, 'admin', 'xxxx'))]))
 t('service_role (no JWT) cannot use staff RPCs either', err(db.as_(None, 'select public.admin_set_role(%s,%s,%s)', (A, 'admin', 'xxxx'), role='service_role'), 'not authenticated'))
 
-# ───────────────────────────────────── 4. ROLE ESCALATION ─────────────────────────────────────
+# 4. ROLE ESCALATION ─────────────────────────────────────
 head('4. Role escalation')
 for tgt in ('moderator', 'admin'):
     t(f'student cannot UPDATE own role to {tgt}', err(db.as_(A, f"update public.profiles set role='{tgt}' where id=%s", (A,)), 'permission denied'))
@@ -240,7 +240,7 @@ t('SUSPENDED admin has no admin powers (acts as student)', err(mod(db, G, 'admin
 mod(db, H, 'staff_unsuspend_user', G, 'review done', keep=True)
 t('unsuspended admin regains powers', db.as_(G, 'select public.acting_role()')[1][0][0] == 'admin')
 
-# ───────────────────────────────────── 5. IDOR + TAMPERING ─────────────────────────────────────
+# 5. IDOR + TAMPERING ─────────────────────────────────────
 head('5. IDOR across users and tampering with client-supplied values')
 chem = item_id(db, 'Chemistry book'); calc = item_id(db, 'Calculator'); conv = db.su('select id from public.conversations')[0][0]
 t('B cannot update A\'s listing', db.as_(B, "update public.items set title='hacked' where id=%s", (chem,)) == ('OK', 0))
@@ -275,7 +275,7 @@ t('role can never be forged through an item/report/profile payload (profiles wri
 t('account_status cannot be forged by the user', err(db.as_(A, "update public.profiles set account_status='active', suspended_until=null where id=%s", (A,)), 'permission denied'))
 t('staff RPC cannot be aimed at yourself (forged user_id = own id)', err(mod(db, E, 'staff_warn_user', E, 'self warn'), 'own account') and err(mod(db, G, 'admin_ban_user', G, 'self ban'), 'own account'))
 
-# ───────────────────────────────────── 6. REPORTING ─────────────────────────────────────
+# 6. REPORTING ─────────────────────────────────────
 head('6. Reporting')
 cal_owner = B; lab = item_id(db, 'Lab coat'); draft = item_id(db, 'Drafting kit')
 r = db.as_(B, "!insert into public.reports(listing_id,reason,description,reporter_id,status,reviewed_by,reviewed_at,reported_user_id,created_at) values (%s,'scam','looks fake',%s,'resolved',%s,now(),%s,now()-interval '9 days') returning reporter_id,status,reviewed_by,reviewed_at,reported_user_id,target_snapshot->>'listing_title',created_at > now()-interval '1 minute'", (chem, A, G, C))
@@ -355,7 +355,7 @@ used = db.su("select count(*) from public.rate_limit_events where user_id=%s and
 t(f'moderator action limit: exactly 200 per hour ({used} already used) then refused', [x[0] for x in db.as_many(E, [('select public.staff_warn_user(%s,%s,null)', (C, 'rate limit probe'))] * 201)].count('OK') == 200 - used and used > 5)
 t('admins are not subject to the moderator limit', [x[0] for x in db.as_many(G, [('select public.staff_warn_user(%s,%s,null)', (C, 'rate limit probe'))] * 201)].count('OK') == 201)
 
-# ───────────────────────────────────── 8. HIDDEN LISTING BEHAVIOUR ─────────────────────────────────────
+# 8. HIDDEN LISTING BEHAVIOUR ─────────────────────────────────────
 head('8. Hidden listing behaviour (chem book is hidden since step 7)')
 db.su("update public.profiles set account_status='active', suspended_until=null, suspension_reason=null where id=%s", (A,))  # A's suspension is re-applied in section 9
 t('hidden: other students do not see it (list or by id)', db.as_(C, 'select count(*) from public.items where id=%s', (chem,))[1][0][0] == 0 and db.as_(C, "select count(*) from public.items where title='Chemistry book'")[1][0][0] == 0)
@@ -389,7 +389,7 @@ db.su("update public.items set moderation_status='hidden' where id=%s", (calc,))
 t('direct SQL moderation change is caught by the backstop audit (direct_sql, security)', audit_count(db, 'LISTING_MODERATION_CHANGED', source='direct_sql', category='security') == 1)
 db.su("update public.items set moderation_status='approved' where id=%s", (calc,))
 
-# ───────────────────────────────────── 9. SUSPENSION / BAN ENFORCEMENT ─────────────────────────────────────
+# 9. SUSPENSION / BAN ENFORCEMENT ─────────────────────────────────────
 head('9. Suspension = read-only, ban = blocked (enforced in the DB; A is suspended for 3 days)')
 db.su("update public.profiles set account_status='suspended', suspended_until=now() + interval '3 days', suspension_reason='Repeated scam listings' where id=%s", (A,))
 blocked = lambda r, *n: (r[0] == 'ERR' and all(x.lower() in r[1].lower() for x in n)) or r == ('OK', 0) or (r[0] == 'ERR' and 'row-level security' in r[1])
@@ -426,7 +426,7 @@ t('moderator cannot unban; admin can ban/unban (audited)', err(mod(db, E, 'admin
 t('admin bans a student; moderator cannot touch banned user', ok(mod(db, G, 'admin_ban_user', C, 'Fraud confirmed', None, keep=True)) and err(db.as_(E, "select public.staff_suspend_user(%s, now()+interval '1 day','x y z',null)", (C,)), 'banned'))
 mod(db, G, 'admin_unban_user', C, 'cleanup', keep=True)
 
-# ───────────────────────────────────── 10. ADMIN: users, categories, audit ─────────────────────────────────────
+# 10. ADMIN: users, categories, audit ─────────────────────────────────────
 head('10. Admin capabilities')
 t('admin search finds users and returns email; limit is clamped', len(db.as_(G, "select * from public.admin_search_users('a', 1000, 0)")[1]) >= 5 and db.as_(G, "select email from public.admin_search_users('Bala')")[1][0][0] == 'bala@iips.edu.in')
 t('admin search escapes wildcards (a literal % matches nothing)', db.as_(G, "select count(*) from public.admin_search_users('%')")[1][0][0] == 0 and db.as_(G, "select count(*) from public.admin_search_users('_')")[1][0][0] == 0)
@@ -454,7 +454,7 @@ t('cannot disable the LAST active category', ok(db.as_many(G, [('select public.a
   [x[0] for x in db.as_many(G, [('select public.admin_set_category_active(%s,false,%s)', (x[0], 'trim down')) for x in db.su("select id from public.categories where is_active order by id")])][-1] == 'ERR')
 mod(db, G, 'admin_set_category_active', cid, True, 'enable again', keep=True)
 
-# ───────────────────────────────────── 11. RATE LIMITS ─────────────────────────────────────
+# 11. RATE LIMITS ─────────────────────────────────────
 head('11. Rate limits (each rule; server clock; exact under concurrency)')
 for i, nm in enumerate(['Ra', 'Rb', 'Rc', 'Rd', 'Re']):
     db.su("insert into auth.users(id,email,raw_user_meta_data) values (%s,%s,%s)", (f'bbbbbbbb-0000-0000-0000-00000000000{i}', f'{nm.lower()}@iips.edu.in', json.dumps({'display_name': f'Rate User {nm}'})))
@@ -495,7 +495,7 @@ t('16 concurrent requests against a limit of 5: exactly 5 pass', outs.count('ok'
 db.su("delete from public.rate_limit_rules where action='t_conc'")
 t('rejected requests record nothing; purge function works and is not callable via API', (lambda j: j['rate_limit_events_deleted'] >= 0)(json.loads(json.dumps(db.su('select public.v3_purge_old_events()')[0][0]))) and err(db.as_(A, 'select public.v3_purge_old_events()'), 'permission denied'))
 
-# ───────────────────────────────────── 12. RESERVED NAMES ─────────────────────────────────────
+# 12. RESERVED NAMES ─────────────────────────────────────
 head('12. Reserved display names')
 def reserved(n): return db.as_(None, 'select public.is_display_name_reserved(%s)', (n,), role='anon')[1][0][0]
 bad = ['admin', 'Admin', 'ADMINISTRATOR', 'a d m i n', 'Ad-min', 'admin1', 'Moderator', 'moderator 2', 'support', 'SUPPORT', 'Campus Market', 'campusmarket', 'campus_market', 'CampusMarket',
@@ -511,7 +511,7 @@ for n in ('Admin Support', 'M0derator'):
 t('sign-up with a normal name still works', (db.su("insert into auth.users(email,raw_user_meta_data) values ('okname@iips.edu.in','{\"display_name\":\"Priya Sharma\"}')"), True)[1])
 t('existing profiles were not renamed', [x[0] for x in db.su('select display_name from public.profiles where id = any(%s::uuid[]) order by email', ([A,B,C,D,E,F,G,H],))] == ['Asha A','Bala B','Chitra C','Dev D','Esha E','Farid F','Gita G','Hari H'])
 
-# ───────────────────────────────────── 13. V2 REGRESSION (what the deployed app does) ─────────────────────────────────────
+# 13. V2 REGRESSION (what the deployed app does) ─────────────────────────────────────
 head('13. V2 functionality still works for a normal student on the migrated DB')
 t('browse: search + category + price + sort + pagination (range) as V2 queries do', db.as_(C, "select id from public.items where status='active' and category = any(%s) and price<=%s and (title ilike %s) order by created_at desc, id desc limit 20 offset 0", (['books','electronics'], 5000, '%book%'))[0] == 'OK'
   and db.as_(C, "select count(*) from public.items where status='active'")[1][0][0] >= 5)

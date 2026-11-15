@@ -6,7 +6,6 @@ import { knownDbError } from '@/lib/errors';
 
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as const;
 
-/** Validates the real file contents, then uploads to <user-id>/<timestamp>-<random>.<ext>. */
 export async function uploadListingImage(
   userId: string,
   file: File,
@@ -25,8 +24,6 @@ export async function uploadListingImage(
     cacheControl: '31536000',
   });
   if (error) {
-    // Storage policy (migration 009) can refuse for rate limits or restricted accounts. Whether Storage
-    // forwards our coded message or only a generic RLS error needs a live test, so both are handled.
     const known = knownDbError(error.message);
     if (known) return { error: known };
     if (/row-level security|violates|unauthorized|403/i.test(error.message))
@@ -37,7 +34,6 @@ export async function uploadListingImage(
   return { url: data.publicUrl, path };
 }
 
-/** Extract "<uid>/<file>" from one of our public URLs; null for demo/foreign images. */
 export function storagePathFromUrl(url: string | null, userId: string): string | null {
   if (!url) return null;
   const marker = `/storage/v1/object/public/${IMAGE_BUCKET}/`;
@@ -50,5 +46,5 @@ export function storagePathFromUrl(url: string | null, userId: string): string |
 export async function removeImage(path: string | null) {
   if (!path) return;
   const supabase = await createClient();
-  await supabase.storage.from(IMAGE_BUCKET).remove([path]); // storage RLS: own folder only
+  await supabase.storage.from(IMAGE_BUCKET).remove([path]);
 }

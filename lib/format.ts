@@ -16,20 +16,14 @@ export function timeAgo(iso: string, now: number = Date.now()): string {
   return days === 1 ? '1 day ago' : `${days} days ago`;
 }
 
-/** Label + CSS class for a listing's state (same classes as V1). */
 export function statusInfo(item: Pick<Listing, 'status' | 'listingType'>) {
   if (item.status === 'sold') return { label: 'SOLD', cls: 'sold', done: true };
   if (item.status === 'rented') return { label: 'RENTED', cls: 'rented-out', done: true };
-  // 'inactive' is set by the database (migration 006); there is no screen that sets it yet.
   if (item.status === 'inactive') return { label: 'UNAVAILABLE', cls: 'sold', done: true };
   if (item.listingType === 'rent') return { label: 'FOR RENT', cls: 'rent', done: false };
   return { label: 'FOR SALE', cls: 'sell', done: false };
 }
 
-/**
- * How a rental is priced: "per week" plus an optional "up to 4 weeks" limit. Rentals created before migration 011
- * have no unit stored; they were always shown per week, so that stays the fallback. Returns null for items for sale.
- */
 export function rentTerms(item: Pick<Listing, 'listingType' | 'rentUnit' | 'rentMaxUnits'>): { perUnit: string; max: string | null } | null {
   if (item.listingType !== 'rent') return null;
   const unit = RENT_UNITS.find((u) => u.value === (item.rentUnit ?? 'week')) ?? RENT_UNITS[1];

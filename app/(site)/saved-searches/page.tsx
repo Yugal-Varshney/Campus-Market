@@ -19,7 +19,7 @@ export default async function SavedSearchesPage() {
       <header className="listings-header" style={{ marginBottom: '1.5rem' }}>
         <div className="listings-header-left">
           <h1 className="font-display">SAVED SEARCHES</h1>
-          <span className="item-count-badge" role="status">{rows ? (totalNew > 0 ? `${totalNew} NEW` : `${rows.length} SAVED`) : '—'}</span>
+          <span className="item-count-badge" role="status">{rows ? (totalNew > 0 ? `${totalNew} NEW` : `${rows.length} SAVED`) : '-'}</span>
         </div>
       </header>
       <p className="saved-intro">Save a search on the marketplace and we&apos;ll count new matches here and on the Alerts icon. Up to 10 searches.</p>

@@ -38,7 +38,6 @@ export default function ListingForm({ action, initial, submitLabel, categories, 
   const blobRef = useRef<string | null>(null);
   const editing = !!initial;
 
-  // Errors from the server (for example a rate limit) show next to their field when we know which one it is.
   const errors = { ...(state.fieldErrors ?? {}), ...clientErrors };
   const generalError = clientErrors._ || (state.error && !Object.keys(state.fieldErrors ?? {}).length ? state.error : '');
   const bad = (name: string) => (errors[name] ? { 'aria-invalid': true as const, 'aria-describedby': `err-${name}` } : {});
@@ -75,7 +74,6 @@ export default function ListingForm({ action, initial, submitLabel, categories, 
     setPhotoPreview(initial?.imageUrl ?? null, false);
   }
 
-  // Keep the live preview and the character counters in step with what is typed.
   function onInput(e: React.FormEvent<HTMLFormElement>) {
     const fd = new FormData(e.currentTarget);
     setVals({
@@ -83,7 +81,7 @@ export default function ListingForm({ action, initial, submitLabel, categories, 
       condition: String(fd.get('condition') ?? 'good'), category: String(fd.get('category') ?? ''), rentMax: String(fd.get('rentMaxUnits') ?? ''),
     });
     const name = (e.target as HTMLInputElement).name;
-    if (name && errors[name]) setClientErrors((c) => ({ ...c, [name]: '' })); // an empty string hides a server-side message too
+    if (name && errors[name]) setClientErrors((c) => ({ ...c, [name]: '' }));
   }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -98,16 +96,14 @@ export default function ListingForm({ action, initial, submitLabel, categories, 
     const hasPhoto = photo instanceof File && photo.size > 0;
     let target = field ?? '';
     let msg = error ?? '';
-    if (!msg && !editing && !hasPhoto) { msg = 'Add a photo — real photos get far more replies.'; target = 'photo'; }
+    if (!msg && !editing && !hasPhoto) { msg = 'Add a photo - real photos get far more replies.'; target = 'photo'; }
     if (!msg) { setClientErrors({}); return; }
     e.preventDefault();
     setClientErrors({ [target || '_']: msg });
-    // Move focus to the field that needs fixing so keyboard and screen-reader users land on it.
     const el = target === 'photo' ? document.getElementById('sell-photo-trigger') : target ? formRef.current?.elements.namedItem(target) : null;
     if (el instanceof HTMLElement) el.focus();
   }
 
-  // ---- values for the live preview ----
   const priceNum = Number(vals.price);
   const previewTerms = rentTerms({ listingType: mode, rentUnit: mode === 'rent' ? rentUnit : null, rentMaxUnits: vals.rentMax && Number(vals.rentMax) > 0 ? Number(vals.rentMax) : null });
   const previewStatus = statusInfo({ status: 'active', listingType: mode });
@@ -129,7 +125,7 @@ export default function ListingForm({ action, initial, submitLabel, categories, 
         </fieldset>
         <div>
           <label className="field-label" htmlFor="sell-title">Title</label>
-          <input id="sell-title" name="title" className="field-input" defaultValue={initial?.title} placeholder="e.g. Organic Chemistry 3rd Ed — highlighted" maxLength={TITLE_MAX} autoComplete="off" {...bad('title')} />
+          <input id="sell-title" name="title" className="field-input" defaultValue={initial?.title} placeholder="e.g. Organic Chemistry 3rd Ed - highlighted" maxLength={TITLE_MAX} autoComplete="off" {...bad('title')} />
           <div className="field-meta">
             <FieldError id="title" message={errors.title} />
             <span className="field-count" aria-hidden="true">{vals.title.length}/{TITLE_MAX}</span>
@@ -236,7 +232,7 @@ export default function ListingForm({ action, initial, submitLabel, categories, 
                 <p className="item-seller-line">Listed by <span>{sellerName}</span></p>
               </div>
               <div className="item-price-block">
-                <span className="item-price">{priceNum > 0 ? formatPrice(priceNum) : '₹—'}</span>
+                <span className="item-price">{priceNum > 0 ? formatPrice(priceNum) : '₹-'}</span>
                 {previewTerms && <span className="item-price-unit">{previewTerms.perUnit}</span>}
                 {previewTerms?.max && <span className="item-price-unit">{previewTerms.max}</span>}
               </div>

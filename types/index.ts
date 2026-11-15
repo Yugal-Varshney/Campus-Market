@@ -4,7 +4,6 @@ export type Category = Database['public']['Tables']['items']['Row']['category'];
 export type ListingType = Database['public']['Tables']['items']['Row']['listing_type'];
 export type ListingStatus = Database['public']['Tables']['items']['Row']['status'];
 export type Condition = 'new' | 'like-new' | 'good' | 'fair';
-/** One entry of a category dropdown or filter list. */
 export interface CategoryOption { value: string; label: string }
 export type RentUnit = 'day' | 'week' | 'month';
 export type ContactShareStatus = Database['public']['Tables']['contact_shares']['Row']['status'];
@@ -12,7 +11,6 @@ export type ReportReason = Database['public']['Tables']['reports']['Row']['reaso
 export type Role = Database['public']['Tables']['profiles']['Row']['role'];
 export type SortKey = 'newest' | 'price-asc' | 'price-desc';
 
-/** The signed-in user as the UI needs it. */
 export interface User {
   id: string;
   email: string;
@@ -21,7 +19,6 @@ export interface User {
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 
-/** A listing as shown on cards and detail pages (never includes private contact data). */
 export interface Listing {
   id: number;
   sellerId: string | null;
@@ -36,7 +33,6 @@ export interface Listing {
   campusLocation: string;
   status: ListingStatus;
   createdAt: string;
-  /** Rentals only: what the price is per, and the longest rental the seller accepts (null = no limit). */
   rentUnit: RentUnit | null;
   rentMaxUnits: number | null;
 }
@@ -57,11 +53,9 @@ export interface Conversation {
   createdAt: string;
   itemTitle: string;
   itemSellerName: string;
-  /** Latest message in the chat (null until someone writes). The list is ordered by this. */
   lastMessage?: string | null;
   lastMessageAt?: string | null;
   lastSenderId?: string | null;
-  /** When the signed-in person last opened this chat (null if never recorded). Used for the unread dot. */
   lastReadAt?: string | null;
 }
 
@@ -96,7 +90,6 @@ export interface Paginated<T> {
   pageSize: number;
 }
 
-/** Result shape for server actions used with useActionState. */
 export interface ActionState {
   error?: string;
   success?: string;

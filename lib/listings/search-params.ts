@@ -4,10 +4,6 @@ import type { Category, ListingQuery, SortKey } from '@/types';
 type Raw = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-/**
- * URL (?q=&category=&minPrice=&maxPrice=&sort=&page=&available=) -> a validated query. Never trusts input.
- * `validCategories` is the live list from the database; the built-in list is the fallback.
- */
 export function parseListingQuery(sp: Raw, validCategories?: string[]): ListingQuery {
   const validCats = validCategories ?? CATEGORIES.map((c) => c.value);
   const cats = (one(sp.category) ?? '')
@@ -33,7 +29,6 @@ export function parseListingQuery(sp: Raw, validCategories?: string[]): ListingQ
 
 export const PAGE = PAGE_SIZE;
 
-/** Builds a /marketplace URL from URL params, skipping empty ones. Shared by pagination, filter pills and category chips. */
 export function marketplaceHref(params: Record<string, string | undefined>): string {
   const p = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => v && p.set(k, v));

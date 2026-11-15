@@ -30,7 +30,6 @@ export default function SavedSearchRow({ id, label, href, notify, newCount }: { 
           : <p className="saved-row-quiet">Alerts are off</p>}
       </div>
       <div className="saved-row-actions">
-        {/* Opening the results counts as "seen", so the badge restarts. The action runs in the background and navigation is not delayed. */}
         <Link href={href} className="btn btn-dark btn-sm" onClick={() => { if (newCount > 0) void markSavedSearchSeen(id); }}>
           {newCount > 0 ? 'SEE NEW' : 'VIEW'}
         </Link>

@@ -6,13 +6,12 @@ import { PRICE_SLIDER_MAX } from '@/lib/constants';
 import { formatPrice } from '@/lib/format';
 import type { CategoryOption } from '@/types';
 
-/** Filters live in the URL (?category=&maxPrice=) so results are server-rendered, shareable and paginated. */
 export default function Filters({ categories }: { categories: CategoryOption[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
-  const [open, setOpen] = useState(false); // phones only: the panel is collapsed behind a "Filters" button
+  const [open, setOpen] = useState(false);
 
   const selected = (params.get('category') ?? '').split(',').filter(Boolean);
   const urlMax = params.get('maxPrice');
@@ -29,7 +28,6 @@ export default function Filters({ categories }: { categories: CategoryOption[] }
     startTransition(() => router.push(qs ? `${pathname}?${qs}` : pathname));
   };
 
-  // Debounce the slider so dragging doesn't fire a query per pixel; skip it when the URL already says the same thing.
   useEffect(() => {
     if (first.current) { first.current = false; return; }
     const target = max >= PRICE_SLIDER_MAX ? null : String(max);
@@ -39,7 +37,7 @@ export default function Filters({ categories }: { categories: CategoryOption[] }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [max]);
 
-  useEffect(() => { // keep slider in sync when "Clear filters" resets the URL
+  useEffect(() => {
     setMax(urlMax ? Math.min(Number(urlMax), PRICE_SLIDER_MAX) : PRICE_SLIDER_MAX);
   }, [urlMax]);
 
@@ -49,7 +47,6 @@ export default function Filters({ categories }: { categories: CategoryOption[] }
       if (next.length) p.set('category', next.join(',')); else p.delete('category');
     });
 
-  // Clears the filters but keeps what the person typed in search and their sort order.
   const clearAll = () => push((p) => { p.delete('category'); p.delete('minPrice'); p.delete('maxPrice'); p.delete('available'); });
 
   return (

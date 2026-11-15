@@ -1,10 +1,4 @@
-/*
-  Campus Market — "noticeboard flea market" design system.
-  Warm paper background, near-black ink, one loud signal-orange primary.
-  Bebas Neue for display type, Futura (Jost on devices without it) for body, JetBrains Mono for prices
-  and meta labels. Sharp corners everywhere: nothing on a noticeboard is
-  rounded.
-*/
+
 
 :root {
   --font-display: "Bebas Neue", "Arial Narrow", sans-serif;
@@ -111,8 +105,6 @@ main {
   flex: 1;
 }
 
-/* ---------------------------------- Buttons ---------------------------------- */
-
 .btn {
   display: inline-flex;
   align-items: center;
@@ -158,8 +150,6 @@ main {
   color: var(--background);
 }
 
-/* ---------------------------------- Navbar ---------------------------------- */
-
 .navbar {
   position: sticky;
   top: 0;
@@ -200,10 +190,9 @@ main {
 .search-form { display: none; }
 @media (min-width: 768px) { .search-form { display: block; } }
 
-/* Mobile search (Phase 2): shown only where the navbar search is hidden */
 .mobile-search { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .mobile-search .search-input { flex: 1; width: 100%; min-width: 0; }
-@media (min-width: 768px) { .mobile-search { max-width: 36rem; } } /* Phase 2: the on-page search stays visible on desktop too */
+@media (min-width: 768px) { .mobile-search { max-width: 36rem; } }
 
 .search-wrap { position: relative; }
 
@@ -338,8 +327,6 @@ main {
 .user-dropdown-item:hover { background: var(--secondary); }
 .user-dropdown-item.danger { color: var(--destructive); }
 
-/* ---------------------------------- Chat dock ---------------------------------- */
-
 .chat-dock {
   position: fixed;
   bottom: 1.5rem;
@@ -372,8 +359,6 @@ main {
   }
   .chat-dock svg { width: 22px; height: 22px; }
 }
-
-/* ---------------------------------- Browse page ---------------------------------- */
 
 .browse-grid {
   max-width: 80rem;
@@ -451,7 +436,6 @@ main {
 .mode-btn:hover { background: var(--secondary); }
 .mode-btn.active { background: var(--foreground); color: var(--background); }
 
-
 .listings-header {
   margin-bottom: 2rem;
   display: flex;
@@ -501,8 +485,6 @@ main {
 .empty-state h2 { font-family: var(--font-display); font-size: 1.5rem; }
 .empty-state p { margin-top: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground); }
 .empty-state .btn { margin-top: 1.5rem; }
-
-/* ---------------------------------- Item card ---------------------------------- */
 
 .item-card {
   animation: slide-up 0.5s var(--ease-out-expo) both;
@@ -630,13 +612,9 @@ main {
   color: var(--muted-foreground);
 }
 
-/* ---------------------------------- Skeletons ---------------------------------- */
-
 .skeleton { background: var(--muted); }
 .skeleton-pulse { animation: pulse 1.5s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-/* ---------------------------------- Item detail page ---------------------------------- */
 
 .detail-shell { max-width: 72rem; margin: 0 auto; padding: 2.5rem 1rem; }
 @media (min-width: 640px) { .detail-shell { padding: 2.5rem 1.5rem; } }
@@ -746,8 +724,6 @@ main {
 .not-found-shell p { margin-top: 0.75rem; font-size: 0.875rem; color: var(--muted-foreground); }
 .not-found-shell .btn { margin-top: 1.5rem; display: inline-block; }
 
-/* ---------------------------------- Auth pages ---------------------------------- */
-
 .auth-shell {
   max-width: 28rem;
   margin: 0 auto;
@@ -835,8 +811,6 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
   cursor: pointer;
 }
 .link-btn:hover { color: var(--primary); }
-
-/* ---------------------------------- Sell page ---------------------------------- */
 
 .sell-shell { max-width: 72rem; margin: 0 auto; padding: 2.5rem 1rem; }
 @media (min-width: 640px) { .sell-shell { padding: 2.5rem 1.5rem; } }
@@ -927,8 +901,6 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
   color: var(--muted-foreground);
 }
 .etiquette-box p { margin-top: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground); }
-
-/* ---------------------------------- Messages page ---------------------------------- */
 
 .messages-shell { max-width: 72rem; margin: 0 auto; padding: 2rem 1rem; }
 @media (min-width: 640px) { .messages-shell { padding: 2rem 1.5rem; } }
@@ -1044,8 +1016,6 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .chat-input-row input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px var(--ring); }
 .chat-input-row button { padding: 0 1.5rem; font-size: 1.1rem; }
 
-/* ---------------------------------- Toasts ---------------------------------- */
-
 .toast-container {
   position: fixed;
   top: 1.25rem;
@@ -1067,7 +1037,7 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .toast.success { border-left: 4px solid #1a8a4a; }
 .toast.error { border-left: 4px solid var(--destructive); }
 .toast.info { border-left: 4px solid var(--primary); }
-/* New-message toast: sits under the navbar so it does not cover the Messages link or the account menu */
+
 .toast-container.toast-messages { top: 4.75rem; pointer-events: none; }
 .toast-message { pointer-events: auto; display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
 .toast-message a { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; color: inherit; text-decoration: none; }
@@ -1077,18 +1047,14 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .toast-close:hover { color: var(--foreground); }
 @media (max-width: 480px) { .toast-container.toast-messages { left: 1rem; right: 1rem; max-width: none; } }
 
-/* ---------------------------------- Utility ---------------------------------- */
-
 .hidden { display: none !important; }
 .text-muted { color: var(--muted-foreground); }
 .mt-1 { margin-top: 0.25rem; }
 .visually-loading { opacity: 0.6; pointer-events: none; }
 
-/* ---------------------------------- Sold / rented state ---------------------------------- */
 .item-type-badge.sold { background: #5b5d68; color: #fff; }
 .item-type-badge.rented-out { background: #5b5d68; color: #fff; }
 
-/* Greyscale the photo once an item is sold or rented out */
 .is-done .item-media img,
 .item-media.is-done img {
   filter: grayscale(100%);
@@ -1107,7 +1073,6 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
   color: var(--muted-foreground);
 }
 
-/* Seller controls */
 .owner-panel {
   margin-top: 1.5rem;
   padding: 1rem;
@@ -1117,7 +1082,6 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .owner-hint { margin-top: 0.4rem; font-size: 0.85rem; color: var(--muted-foreground); }
 .owner-actions { margin-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
-/* Seller contact reveal */
 .contact-card {
   margin-top: 1.5rem;
   padding: 1rem 1.25rem;
@@ -1138,7 +1102,6 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .contact-line a { color: var(--primary); font-weight: 600; word-break: break-all; text-align: right; }
 .contact-note { margin-top: 0.75rem; font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); }
 
-/* ---------- Home hero (Phase 1) ---------- */
 .hero { border-bottom: 1px solid var(--border); background: var(--secondary); }
 .hero-inner { max-width: 80rem; margin: 0 auto; padding: 1.75rem 1rem 1.5rem; }
 @media (min-width: 640px) { .hero-inner { padding: 2.25rem 1.5rem 2rem; } }
@@ -1162,7 +1125,6 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .home-latest-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
 .home-latest-head h2 { margin: 0; font-size: 2rem; font-weight: 400; }
 
-/* ---------- V2 additions ---------- */
 .skip-link { position: absolute; left: -999px; top: 0; z-index: 100; background: var(--foreground); color: var(--background); padding: 0.75rem 1rem; }
 .skip-link:focus { left: 0; }
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
@@ -1177,7 +1139,6 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.75rem; }
 .is-pending { opacity: 0.6; pointer-events: none; }
 
-/* Phase 4: contact consent, reporting, rental terms */
 .contact-bar { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); background: var(--muted); font-size: 0.85rem; }
 .contact-bar p { margin: 0 0 0.5rem; }
 .contact-bar-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
@@ -1190,7 +1151,6 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .chat-report-row { padding: 0.25rem 1rem; }
 .detail-rent-max { margin-top: 0.25rem; font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground); }
 
-/* Phase 5: account notices and staff screens */
 .account-banner { padding: 0.75rem 1rem; text-align: center; font-size: 0.875rem; border-bottom: 1px solid var(--border); background: var(--muted); }
 .account-banner.banned { background: var(--primary); color: var(--primary-foreground); }
 .account-banner.suspended { border-bottom-width: 2px; }
@@ -1217,13 +1177,11 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .mod-select { width: auto; }
 .mod-ok { font-size: 0.85rem; font-weight: 600; }
 
-/* Phase 6: colour contrast (primary and muted text darkened to reach WCAG AA 4.5:1), motion, chat preview */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
 .conversation-item .preview { margin-top: 0.15rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ---------- Phase 2: browsing ---------- */
 .chip:focus-visible, .filter-pill:focus-visible, .filters-toggle:focus-visible, .filters-clear:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .chip.is-active { background: var(--foreground); border-color: var(--foreground); color: var(--background); }
 
@@ -1235,7 +1193,6 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .filter-pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.6rem; border: 1px solid var(--primary); background: color-mix(in oklab, var(--primary) 10%, transparent); color: var(--primary); font-family: var(--font-mono); font-size: 0.75rem; }
 .filter-pill:hover { background: var(--primary); color: var(--primary-foreground); }
 
-/* Filters: collapsed behind a button on phones and tablets, always open on desktop */
 .filters-toggle { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; padding: 0.7rem 1rem; border: 1px solid var(--border); background: var(--card); font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; }
 .filters-count { min-width: 1.25rem; padding: 0 0.35rem; background: var(--primary); color: var(--primary-foreground); text-align: center; }
 .browse-sidebar .sidebar-sticky { display: none; margin-top: 1rem; padding: 1rem; border: 1px solid var(--border); background: var(--card); }
@@ -1248,15 +1205,12 @@ textarea.field-input { height: auto; padding: 0.75rem 1rem; resize: vertical; }
 .filters-clear { align-self: flex-start; padding: 0; border: 0; background: none; font-size: 0.875rem; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 .filters-clear:hover { color: var(--primary); }
 
-/* Cards */
 .item-meta-line { margin-top: 0.25rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted-foreground); }
 
-/* Empty states */
 .empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1.5rem; }
 .empty-actions .btn { margin-top: 0; }
 @media (max-width: 639px) { .empty-state { padding: 2rem 1rem; } }
 
-/* ---------- Phase 3: selling and messaging ---------- */
 .field-input[aria-invalid="true"], .photo-drop[aria-invalid="true"] { border-color: var(--destructive); }
 .field-error { margin-top: 0.25rem; font-size: 0.8rem; color: var(--destructive); }
 .field-meta { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
@@ -1284,7 +1238,6 @@ button.chip:disabled { opacity: 0.5; cursor: default; }
 .success-actions .btn { margin-top: 0; }
 .owner-notice { margin-top: 0.75rem; }
 
-/* ---------- Phase 4: repeat visits ---------- */
 .save-search { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin: 0 0 1.25rem; }
 .save-search .btn { margin-top: 0; }
 .save-search-hint { margin: 0; font-size: 0.8rem; color: var(--muted-foreground); }
@@ -1310,32 +1263,25 @@ button.chip:disabled { opacity: 0.5; cursor: default; }
 .wanted-label { margin: 0; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); }
 .wanted-row .hero-chips { margin: 0; }
 
-/* ---------- Phase 5: validation fixes ---------- */
-/* Contrast: primary-coloured text on the pale primary tint was 3.96:1 (needs 4.5:1). Dark text keeps the primary border and hover. */
 .filter-pill { color: var(--foreground); }
 .filter-pill:hover { color: var(--primary-foreground); }
 
-/* Small print: 10px was too small to read comfortably on a phone. Raised to 12px for everything except the numbers inside round badges. */
 .user-dropdown-email, .item-category-label, .item-price-unit, .stat-label, .detail-posted, .field-label, .field-hint, .photo-drop .sub,
 .photo-preview-caption, .etiquette-box .eyebrow, .conversation-list-header, .conversation-item .time, .chat-bubble p.time, .contact-note,
 .conv-tag, .field-count, .quick-messages-label, .contact-copied, .share-note, .wanted-label { font-size: 0.75rem; }
 
-/* Keyboard: the sort menu lost its focus ring when its outline was removed. */
 .sort-select:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-main:focus { outline: none; } /* the skip link moves focus here; it is not a control */
+main:focus { outline: none; }
 
-/* Touch: tappable extras reach 40px on touch screens (the main buttons already do). */
 @media (pointer: coarse) {
   .btn-sm, .chip, .filter-pill, .filters-clear, .checkbox-row { min-height: 2.5rem; }
   .btn-sm, .chip, .filter-pill { display: inline-flex; align-items: center; justify-content: center; }
   .checkbox-row { display: flex; align-items: center; }
 }
 
-/* Connection lost */
 .offline-banner { padding: 0.5rem 1rem; background: var(--foreground); color: var(--background); text-align: center; font-size: 0.875rem; }
 .offline-banner[hidden] { display: none; }
 
-/* Admin usage screen */
 .usage-range { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0 1.5rem; }
 .usage-heading { margin: 1.5rem 0 0.75rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); }
 .usage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.75rem; }
@@ -1348,11 +1294,8 @@ main:focus { outline: none; } /* the skip link moves focus here; it is not a con
 .usage-table th, .usage-table td { padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border); text-align: right; }
 .usage-table th[scope="row"], .usage-table thead th:first-child { text-align: left; font-weight: 500; }
 
-/* ---------- Phase 5 follow-up: phone navbar and duplicate search ---------- */
-/* One search box per page: when the page has its own (homepage hero, marketplace), the navbar copy is hidden. */
 body:has(.hero-search, .mobile-search) .search-form { display: none; }
 
-/* Phones: the brand may shrink and truncate instead of running under the buttons, and the right-hand group tightens up. */
 .brand { min-width: 0; flex-shrink: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .navbar-left { flex: 1 1 auto; }
 .nav-sell-extra { display: none; }
@@ -1364,10 +1307,9 @@ body:has(.hero-search, .mobile-search) .search-form { display: none; }
   .navbar-right .icon-link { padding: 0.5rem 0.4rem; }
   .navbar-right .nav-sell { padding: 0.45rem 0.8rem; font-size: 0.95rem; margin: 0 0.25rem; }
 }
-@media (max-width: 359px) { .nav-alerts { display: none; } } /* very narrow screens: Alerts stays reachable from the account menu */
+@media (max-width: 359px) { .nav-alerts { display: none; } }
 @media (min-width: 640px) { .nav-sell-extra { display: inline; } }
 
-/* ---------- Requested tweaks: close button, highlighted CTA, sign-up guidance ---------- */
 .contact-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .contact-close {
   display: inline-flex; align-items: center; justify-content: center;

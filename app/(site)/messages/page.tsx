@@ -11,13 +11,13 @@ export const metadata: Metadata = { title: 'Messages' };
 
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
   const user = await getCurrentUser();
-  if (!user) return null; // middleware redirects signed-out visitors
+  if (!user) return null;
   const { c } = await searchParams;
 
   let conversations: Conversation[] | null = null;
   try { conversations = await getConversations(); } catch { conversations = null; }
 
-  const active = conversations?.find((x) => String(x.id) === c) ?? null; // only conversations RLS returned can match
+  const active = conversations?.find((x) => String(x.id) === c) ?? null;
   const messages = active ? await getMessages(active.id).catch(() => []) : [];
   const shares = conversations ? await getSharesByConversation() : {};
   const pendingIds = conversations ? conversations.filter((x) => x.sellerId === user.id && shares[x.id] === 'requested').map((x) => x.id) : [];

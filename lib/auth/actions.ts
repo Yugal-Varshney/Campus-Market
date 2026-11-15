@@ -24,7 +24,7 @@ export async function login(_: ActionState, fd: FormData): Promise<ActionState> 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    if (/not confirmed/i.test(error.message)) return { error: 'Confirm your email first — check your inbox for the link.' };
+    if (/not confirmed/i.test(error.message)) return { error: 'Confirm your email first - check your inbox for the link.' };
     return { error: 'Wrong email or password.' };
   }
   redirect(safeNext(str(fd, 'next')));
@@ -39,8 +39,6 @@ export async function register(_: ActionState, fd: FormData): Promise<ActionStat
 
   const supabase = await createClient();
 
-  // Friendly pre-check for reserved display names (migration 009 enforces it in the database as well,
-  // but Supabase Auth reports trigger failures only as a generic "Database error saving new user").
   const { data: reserved } = await supabase.rpc('is_display_name_reserved', { p_name: name.trim() });
   if (reserved === true) return { error: 'That display name is reserved. Please choose another.' };
 
@@ -67,15 +65,12 @@ export async function register(_: ActionState, fd: FormData): Promise<ActionStat
     if (/college|approved|\.edu/i.test(error.message)) {
       return { error: error.message };
     }
-    // The college-email / allow-list trigger on auth.users surfaces as this generic message.
     if (/database error saving new user/i.test(error.message)) {
       return { error: "We couldn't create this account. Check that you're using your approved university email address and a display name that isn't reserved." };
     }
     return { error: 'Could not create your account. Please try again.' };
   }
 
-  // When "Confirm email" is switched OFF in Supabase Auth, signUp returns a live session and the user
-  // is already signed in, so telling them to check their inbox would be wrong.
   if (data.session) redirect('/marketplace');
 
   return { success: 'We sent a confirmation link to your college email. Click it, then sign in.' };
@@ -97,7 +92,6 @@ export async function requestPasswordReset(_: ActionState, fd: FormData): Promis
   if (error?.status === 429 || error?.code === 'over_email_send_rate_limit' || error?.code === 'over_request_rate_limit') {
     return { error: 'Too many reset requests. Please wait a minute and try again.' };
   }
-  // Same message whether or not the account exists (no account enumeration).
   return { success: 'If that account exists, a reset link is on its way to your inbox.' };
 }
 

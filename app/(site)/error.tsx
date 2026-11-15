@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 
-/** A page crashed. The navbar and footer stay, so the person can go somewhere else without reloading. */
 export default function SiteError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <div className="not-found-shell" role="alert">
